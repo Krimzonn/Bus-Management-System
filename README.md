@@ -1,46 +1,46 @@
-# University Bus Management System
+# Bus Management System
 
-A web-based Bus Management System developed as a university Introduction to Software Engineering project.
-
-## Project Overview
-
-The system aims to digitize and manage university bus operations, including fleet management, drivers, routes, scheduling, recruitment, fuel records, maintenance, reporting, and notifications.
+A web-based Bus Management System developed using React,
+Node.js, Express, and PostgreSQL.
 
 ## Technology Stack
 
-- **Frontend:** React
-- **Backend:** Node.js
-- **Database:** PostgreSQL
+- Frontend: React + Vite
+- Backend: Node.js + Express
+- Database: PostgreSQL
+- Database Driver: node-postgres (pg)
 
-## Main Modules
+## Project Structure
 
-- Authentication and user management
-- Fleet / bus management
-- Driver management
-- Route management
-- Scheduling and assignments
-- Recruitment
-- Fuel management
-- Maintenance
-- Reporting
-- Notifications
-- Audit logs
+- client/: React frontend
+- server/: Express backend
 
-## Repository Structure
+## Prerequisites
 
-- `client/` — frontend application
-- `server/` — backend API and business logic
-- `database/` — database migrations and seed data
-- `docs/` — project documentation
+- Node.js
+- npm
+- PostgreSQL
 
-## Team
+## Backend Setup
 
-This project is developed collaboratively by a team of four students.
+1. Navigate to server.
+2. Run npm install.
+3. Configure the .env file using .env.example.
+4. Run npm run migrate.
+5. Run npm run seed.
+6. Run npm run dev.
 
-## Project Status
+## Frontend Setup
 
-Initial repository setup and project organization.
+1. Navigate to client.
+2. Run npm install.
+3. Run npm run dev.
 
-## Development
+## Available Backend Commands
 
-Development will be performed using feature branches and pull requests. Direct commits to `main` should be avoided.
+- npm run dev
+- npm start
+- npm run lint
+- npm test
+- npm run migrate
+- npm run seed
