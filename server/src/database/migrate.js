@@ -1,23 +1,29 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pool } from "./db.js";
+import pg from "pg";
+import { env } from "../config/env.js";
+
+const { Pool } = pg;
+const migrationPool = new Pool({
+  connectionString: env.migrationDatabaseUrl || env.databaseUrl,
+});
 
 const currentFile = fileURLToPath(import.meta.url);
 const currentDirectory = path.dirname(currentFile);
 
 async function runMigrations() {
-  const client = await pool.connect();
+  const client = await migrationPool.connect();
 
   try {
     // Create migration tracking table
     await client.query(`
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                id SERIAL PRIMARY KEY,
-                filename VARCHAR(255) UNIQUE NOT NULL,
-                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) UNIQUE NOT NULL,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
     const migrationDirectory = path.join(currentDirectory, "migrations");
 
@@ -63,11 +69,12 @@ async function runMigrations() {
     console.log("Migration process completed.");
   } finally {
     client.release();
-    await pool.end();
+    await migrationPool.end();
   }
 }
 
-runMigrations().catch((error) => {
+runMigrations().catch(async (error) => {
   console.error("Migration failed:", error.message);
-  process.exit(1);
+  await migrationPool.end();
+  process.exitCode = 1;
 });
