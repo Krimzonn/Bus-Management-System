@@ -334,3 +334,14 @@ tr.selected td {
     color: var(--text-h);
   }
 }
+
+
+/* Audit log */
+.audit-filters { gap: 14px; }
+.audit-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.audit-filter-grid > div { min-width: 0; }
+.audit-snapshot { max-width: 260px; max-height: 150px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; padding: 8px; margin: 0; background: var(--code-bg); border-radius: 6px; }
+.audit-table { font-size: 14px; }
+.audit-table th, .audit-table td { vertical-align: top; }
+@media (max-width: 800px) { .audit-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .audit-filter-grid { grid-template-columns: minmax(0, 1fr); } .audit-snapshot { max-width: 100%; } }
