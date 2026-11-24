@@ -8,6 +8,7 @@ import {
   setSessionExpiredHandler,
 } from "./services/api.js";
 import AccountsPage from "./AccountsPage.jsx";
+import AuditPage from "./AuditPage.jsx";
 import "./App.css";
 
 // Only "admin" may manage accounts (approved D-02); the backend enforces this.
@@ -99,13 +100,10 @@ function Shell({ user, onLogout }) {
             Home
           </button>
           {isAdmin && (
-            <button
-              type="button"
-              className={page === "accounts" ? "nav active" : "nav"}
-              onClick={() => setPage("accounts")}
-            >
-              Accounts
-            </button>
+            <>
+              <button type="button" className={page === "accounts" ? "nav active" : "nav"} onClick={() => setPage("accounts")}>Accounts</button>
+              <button type="button" className={page === "audit" ? "nav active" : "nav"} onClick={() => setPage("audit")}>Audit log</button>
+            </>
           )}
         </nav>
         <div className="user-box">
@@ -120,6 +118,8 @@ function Shell({ user, onLogout }) {
       <main className="content">
         {page === "accounts" && isAdmin ? (
           <AccountsPage currentUser={user} />
+        ) : page === "audit" && isAdmin ? (
+          <AuditPage />
         ) : (
           <section className="card">
             <h2>Welcome</h2>
