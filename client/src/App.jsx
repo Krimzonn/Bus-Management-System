@@ -2,85 +2,34 @@ import { useEffect, useState } from "react";
 import {
   errorMessage,
   getCurrentUser,
-  login,
   logout,
-  roleLabel,
   setSessionExpiredHandler,
 } from "./services/api.js";
 import AccountsPage from "./AccountsPage.jsx";
 import AuditPage from "./AuditPage.jsx";
+import AppShell from "./layouts/AppShell.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 import "./App.css";
+import "./theme.css";
 
 // Only "admin" may manage accounts (approved D-02); the backend enforces this.
 // The check on user.role below only decides what to show.
 
-// ---- Login page ------------------------------------------------------------
+const HOME_NAV = { key: "home", label: "Home", icon: "home" };
+const ADMIN_NAV = [
+  { key: "accounts", label: "Accounts", icon: "users" },
+  { key: "audit", label: "Audit log", icon: "clock" },
+];
 
-function LoginPage({ notice, onLoggedIn }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError("");
-    setSubmitting(true);
-    try {
-      const user = await login(email.trim(), password);
-      setPassword(""); // do not keep the password around
-      onLoggedIn(user);
-    } catch (err) {
-      setError(errorMessage(err));
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <main className="login-page">
-      <form className="card login-card" onSubmit={handleSubmit}>
-        <h1>Bus Management System</h1>
-        <p className="muted">Sign in to continue.</p>
-
-        {notice && <p className="message info" role="status">{notice}</p>}
-        {error && <p className="message error" role="alert">{error}</p>}
-
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={submitting}
-        />
-
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          disabled={submitting}
-        />
-
-        <button type="submit" className="primary" disabled={submitting}>
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </main>
-  );
-}
-
-// ---- Authenticated shell ---------------------------------------------------
-
-function Shell({ user, onLogout }) {
+function Authenticated({ user, onLogout }) {
   const [page, setPage] = useState("home");
   const [loggingOut, setLoggingOut] = useState(false);
   const isAdmin = user.role === "admin";
+
+  const navItems = isAdmin ? [HOME_NAV, ...ADMIN_NAV] : [HOME_NAV];
+  // A non-admin can never land on an admin page, even if state were changed.
+  const current = navItems.some((item) => item.key === page) ? page : "home";
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -88,62 +37,26 @@ function Shell({ user, onLogout }) {
   }
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <strong className="brand">Bus Management System</strong>
-        <nav aria-label="Main">
-          <button
-            type="button"
-            className={page === "home" ? "nav active" : "nav"}
-            onClick={() => setPage("home")}
-          >
-            Home
-          </button>
-          {isAdmin && (
-            <>
-              <button type="button" className={page === "accounts" ? "nav active" : "nav"} onClick={() => setPage("accounts")}>Accounts</button>
-              <button type="button" className={page === "audit" ? "nav active" : "nav"} onClick={() => setPage("audit")}>Audit log</button>
-            </>
-          )}
-        </nav>
-        <div className="user-box">
-          <span className="user-email">{user.email}</span>
-          <span className="badge">{roleLabel(user.role)}</span>
-          <button type="button" onClick={handleLogout} disabled={loggingOut}>
-            {loggingOut ? "Signing out…" : "Sign out"}
-          </button>
-        </div>
-      </header>
-
-      <main className="content">
-        {page === "accounts" && isAdmin ? (
-          <AccountsPage currentUser={user} />
-        ) : page === "audit" && isAdmin ? (
-          <AuditPage />
-        ) : (
-          <section className="card">
-            <h2>Welcome</h2>
-            <p>
-              You are signed in as <strong>{user.email}</strong> (
-              {roleLabel(user.role)}).
-            </p>
-            {!user.role && (
-              <p className="message info">
-                No role has been assigned to your account yet. Ask an Admin to
-                assign one.
-              </p>
-            )}
-            {isAdmin && (
-              <p className="muted">Use “Accounts” to manage internal accounts.</p>
-            )}
-          </section>
-        )}
-      </main>
-    </div>
+    <AppShell
+      user={user}
+      navItems={navItems}
+      page={current}
+      onNavigate={setPage}
+      onLogout={handleLogout}
+      loggingOut={loggingOut}
+    >
+      {current === "accounts" && isAdmin ? (
+        <AccountsPage currentUser={user} />
+      ) : current === "audit" && isAdmin ? (
+        <AuditPage />
+      ) : (
+        <HomePage user={user} onNavigate={setPage} />
+      )}
+    </AppShell>
   );
 }
 
-// ---- App: session restore + routing between login and shell -----------------
+// ---- App: session restore + routing between login and the app ----------------
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -189,19 +102,27 @@ export default function App() {
 
   if (checking) {
     return (
-      <main className="login-page">
-        <p className="muted" role="status">Loading…</p>
+      <main className="bm-center">
+        <p className="bm-muted" role="status">
+          Loading…
+        </p>
       </main>
     );
   }
 
   if (startupError) {
     return (
-      <main className="login-page">
-        <div className="card login-card">
-          <h1>Bus Management System</h1>
-          <p className="message error" role="alert">{startupError}</p>
-          <button type="button" onClick={() => window.location.reload()}>
+      <main className="bm-center">
+        <div className="bm-center-card">
+          <h1 className="bm-auth-title">Bus Management System</h1>
+          <p className="bm-alert bm-alert-error" role="alert">
+            {startupError}
+          </p>
+          <button
+            type="button"
+            className="bm-btn bm-btn-primary"
+            onClick={() => window.location.reload()}
+          >
             Try again
           </button>
         </div>
@@ -221,5 +142,5 @@ export default function App() {
     );
   }
 
-  return <Shell user={user} onLogout={handleLogout} />;
+  return <Authenticated user={user} onLogout={handleLogout} />;
 }
