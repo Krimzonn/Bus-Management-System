@@ -4,7 +4,8 @@ import Icon from "../components/Icon.jsx";
 import { errorMessage, login } from "../services/api.js";
 
 // Same behaviour as before: login(), error text from api.js, session notice.
-export default function LoginPage({ notice, onLoggedIn }) {
+// onBack (optional) shows a "Back to home" link that returns to the landing page.
+export default function LoginPage({ notice, onLoggedIn, onBack }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -94,6 +95,18 @@ export default function LoginPage({ notice, onLoggedIn }) {
         >
           {submitting ? "Signing in…" : "Sign in"}
         </button>
+
+        {onBack && (
+          <button
+            type="button"
+            className="bm-link"
+            onClick={onBack}
+            disabled={submitting}
+            style={{ alignSelf: "center" }}
+          >
+            ← Back to home
+          </button>
+        )}
       </form>
     </AuthLayout>
   );

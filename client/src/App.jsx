@@ -10,6 +10,8 @@ import AuditPage from "./AuditPage.jsx";
 import AppShell from "./layouts/AppShell.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+import { navigate, usePath } from "./utils/navigation.js";
 import "./App.css";
 import "./theme.css";
 
@@ -56,19 +58,25 @@ function Authenticated({ user, onLogout }) {
   );
 }
 
-// ---- App: session restore + routing between login and the app ----------------
+// ---- App: session restore + routing between landing, login and the app ------
+//
+// Public URLs (see utils/navigation.js):
+//   "/"       landing page for visitors, dashboard for signed-in users
+//   "/login"  login page (visitors only)
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true); // true while /auth/me runs
   const [notice, setNotice] = useState("");
   const [startupError, setStartupError] = useState("");
+  const path = usePath();
 
   // If any API call returns 401, go back to the login screen.
   useEffect(() => {
     setSessionExpiredHandler(() => {
       setUser(null);
       setNotice("Your session has expired. Please sign in again.");
+      navigate("/login", { replace: true });
     });
   }, []);
 
@@ -89,6 +97,15 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // Keep the URL consistent with who is signed in:
+  //  - signed in: always "/" (the dashboard)
+  //  - signed out: "/login" or "/" only; any other path becomes "/"
+  useEffect(() => {
+    if (checking) return;
+    const allowed = !user && path === "/login" ? "/login" : "/";
+    if (path !== allowed) navigate(allowed, { replace: true });
+  }, [checking, user, path]);
 
   async function handleLogout() {
     try {
@@ -131,15 +148,19 @@ export default function App() {
   }
 
   if (!user) {
-    return (
-      <LoginPage
-        notice={notice}
-        onLoggedIn={(loggedIn) => {
-          setNotice("");
-          setUser(loggedIn);
-        }}
-      />
-    );
+    if (path === "/login") {
+      return (
+        <LoginPage
+          notice={notice}
+          onBack={() => navigate("/")}
+          onLoggedIn={(loggedIn) => {
+            setNotice("");
+            setUser(loggedIn);
+          }}
+        />
+      );
+    }
+    return <LandingPage onAccessPortal={() => navigate("/login")} />;
   }
 
   return <Authenticated user={user} onLogout={handleLogout} />;
