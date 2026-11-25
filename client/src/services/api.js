@@ -209,3 +209,13 @@ export const assignAccountRole = (id, role) =>
 
 export const setAccountActive = (id, isActive) =>
   apiRequest(`/accounts/${id}/status`, { method: "PATCH", body: { isActive } });
+
+// Admin audit log
+export const listAudit = (filters = {}) => {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+  }
+  const query = params.toString();
+  return apiRequest("/audit" + (query ? "?" + query : ""));
+};
