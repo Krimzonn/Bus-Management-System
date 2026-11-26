@@ -39,7 +39,12 @@ app.use((err, _req, res, _next) => {
   if (Number.isInteger(err.status) && typeof err.code === "string") {
     return res.status(err.status).json({ success: false, code: err.code, data: null });
   }
-  console.error(err);
+console.error("BUS MANAGEMENT API ERROR:");
+console.error("Message:", err.message);
+console.error("Code:", err.code);
+console.error("Detail:", err.detail);
+console.error("Constraint:", err.constraint);
+console.error("Stack:", err.stack);
   return res.status(500).json({ success: false, message: "Internal server error.", data: null });
 });
 

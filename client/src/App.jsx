@@ -11,7 +11,9 @@ import AppShell from "./layouts/AppShell.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import BusesPage from "./pages/BusesPage.jsx";
 import { navigate, usePath } from "./utils/navigation.js";
+import { CAPABILITIES, can } from "./utils/permissions.js";
 import "./App.css";
 import "./theme.css";
 
@@ -19,6 +21,7 @@ import "./theme.css";
 // The check on user.role below only decides what to show.
 
 const HOME_NAV = { key: "home", label: "Home", icon: "home" };
+const BUSES_NAV = { key: "buses", label: "Buses", icon: "bus" };
 const ADMIN_NAV = [
   { key: "accounts", label: "Accounts", icon: "users" },
   { key: "audit", label: "Audit log", icon: "clock" },
@@ -28,9 +31,15 @@ function Authenticated({ user, onLogout }) {
   const [page, setPage] = useState("home");
   const [loggingOut, setLoggingOut] = useState(false);
   const isAdmin = user.role === "admin";
+  // UI hint only; the backend checks "view-buses" on every request.
+  const canViewBuses = can(user, CAPABILITIES.VIEW_BUSES);
 
-  const navItems = isAdmin ? [HOME_NAV, ...ADMIN_NAV] : [HOME_NAV];
-  // A non-admin can never land on an admin page, even if state were changed.
+  const navItems = [
+    HOME_NAV,
+    ...(canViewBuses ? [BUSES_NAV] : []),
+    ...(isAdmin ? ADMIN_NAV : []),
+  ];
+  // A user can never land on a page they have no nav item for, even if state were changed.
   const current = navItems.some((item) => item.key === page) ? page : "home";
 
   async function handleLogout() {
@@ -47,7 +56,9 @@ function Authenticated({ user, onLogout }) {
       onLogout={handleLogout}
       loggingOut={loggingOut}
     >
-      {current === "accounts" && isAdmin ? (
+      {current === "buses" ? (
+        <BusesPage user={user} />
+      ) : current === "accounts" && isAdmin ? (
         <AccountsPage currentUser={user} />
       ) : current === "audit" && isAdmin ? (
         <AuditPage />
