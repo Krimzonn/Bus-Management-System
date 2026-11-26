@@ -4,6 +4,7 @@ import { sessionMiddleware } from "./config/session.js";
 import authRoutes from "./modules/auth/routes.js";
 import accountRoutes from "./modules/auth/account-routes.js";
 import auditRoutes from "./modules/audit/routes.js";
+import busRoutes from "./modules/fleet/routes.js";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.get("/api/v1/health", async (_req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/accounts", accountRoutes);
 app.use("/api/v1/audit", auditRoutes);
+app.use("/api/v1/buses", busRoutes);
 
 app.use((req, res) => res.status(404).json({
   success: false, message: "Route not found.", data: null,

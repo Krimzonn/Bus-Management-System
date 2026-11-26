@@ -4,13 +4,22 @@ import { ACTIONS } from "./registry.js";
 
 const MAX_JSON_BYTES = 4096;
 
+function isAllowedValue(value) {
+  return (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value))
+  );
+}
+
 function validateSnapshot(action, snapshot) {
   if (snapshot == null) return null;
   if (typeof snapshot !== "object" || Array.isArray(snapshot)) throw new Error("INVALID_AUDIT_PAYLOAD");
   const allowed = ACTIONS[action].fields;
   for (const [key, value] of Object.entries(snapshot)) {
     if (!allowed.includes(key)) throw new Error("INVALID_AUDIT_PAYLOAD");
-    if (value !== null && typeof value !== "string" && typeof value !== "boolean") throw new Error("INVALID_AUDIT_PAYLOAD");
+    if (!isAllowedValue(value)) throw new Error("INVALID_AUDIT_PAYLOAD");
     if (typeof value === "string" && value.length > 255) throw new Error("INVALID_AUDIT_PAYLOAD");
   }
   if (Buffer.byteLength(JSON.stringify(snapshot), "utf8") > MAX_JSON_BYTES) throw new Error("INVALID_AUDIT_PAYLOAD");
