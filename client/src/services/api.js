@@ -29,6 +29,24 @@ const ERROR_MESSAGES = {
   ACCOUNT_ALREADY_EXISTS: "An account with this email already exists.",
   SELF_ROLE_CHANGE_FORBIDDEN: "You cannot change your own role.",
   SELF_DEACTIVATION_FORBIDDEN: "You cannot deactivate your own account.",
+  // Fleet (buses)
+  INVALID_BUS_NUMBER:
+    "Enter a valid bus number: up to 30 letters, digits, spaces, “/” or “-”.",
+  INVALID_SEATING_CAPACITY: "Seating capacity must be a whole number from 1 to 100.",
+  INVALID_LICENSE_CATEGORY:
+    "Enter a valid license category: up to 20 letters, digits, spaces or “-”.",
+  INVALID_BUS_STATUS: "Choose a valid bus status.",
+  INVALID_BUS_ID: "This bus identifier is not valid.",
+  INVALID_BUS_FILTER:
+    "One of the filters is not valid. Check the values and try again.",
+  INVALID_PAGINATION:
+    "That page is not available. Go back to the first page and try again.",
+  BUS_NOT_FOUND: "This bus no longer exists. Refresh the list.",
+  BUS_ALREADY_EXISTS:
+    "A bus with this number already exists. Bus numbers are unique and are never reused, even after archiving.",
+  BUS_ARCHIVED: "This bus is archived and can no longer be changed.",
+  BUS_ALREADY_ARCHIVED: "This bus is already archived.",
+  BUS_NUMBER_IMMUTABLE: "A bus number cannot be changed after the bus is created.",
   NETWORK_ERROR: "Cannot reach the server. Check your connection and try again.",
   UNKNOWN: "Something went wrong. Please try again.",
 };
@@ -219,3 +237,36 @@ export const listAudit = (filters = {}) => {
   const query = params.toString();
   return apiRequest("/audit" + (query ? "?" + query : ""));
 };
+
+// ---- Buses (Fleet) -----------------------------------------------------------
+//
+// GET    /buses            ?q &status &requiredLicenseCategory &archived &page &limit
+//                          -> { items, page, limit, total }
+// GET    /buses/:id        -> bus
+// POST   /buses            { busNumber, seatingCapacity, requiredLicenseCategory, status? }
+// PUT    /buses/:id        { seatingCapacity?, requiredLicenseCategory? }
+// PATCH  /buses/:id/status { status }
+// POST   /buses/:id/archive
+
+export const listBuses = (filters = {}) => {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+  }
+  const query = params.toString();
+  return apiRequest("/buses" + (query ? "?" + query : ""));
+};
+
+export const getBus = (id) => apiRequest(`/buses/${id}`);
+
+export const createBus = (input) =>
+  apiRequest("/buses", { method: "POST", body: input });
+
+export const updateBus = (id, changes) =>
+  apiRequest(`/buses/${id}`, { method: "PUT", body: changes });
+
+export const setBusStatus = (id, status) =>
+  apiRequest(`/buses/${id}/status`, { method: "PATCH", body: { status } });
+
+export const archiveBus = (id) =>
+  apiRequest(`/buses/${id}/archive`, { method: "POST" });
