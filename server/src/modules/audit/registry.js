@@ -14,5 +14,12 @@ export const ACTIONS = Object.freeze({
   "bus.updated": { entity: "bus", fields: ["seatingCapacity", "requiredLicenseCategory"] },
   "bus.status_changed": { entity: "bus", fields: ["status"] },
   "bus.archived": { entity: "bus", fields: ["isArchived"] },
+  "route.created": {
+    entity: "route",
+    fields: ["routeCode", "name", "origin", "destination", "status", "isArchived"],
+  },
+  "route.updated": { entity: "route", fields: ["name", "origin", "destination"] },
+  "route.status_changed": { entity: "route", fields: ["status"] },
+  "route.archived": { entity: "route", fields: ["isArchived"] },
 });
-export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus"]);
+export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus", "route"]);
