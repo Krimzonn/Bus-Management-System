@@ -47,6 +47,22 @@ const ERROR_MESSAGES = {
   BUS_ARCHIVED: "This bus is archived and can no longer be changed.",
   BUS_ALREADY_ARCHIVED: "This bus is already archived.",
   BUS_NUMBER_IMMUTABLE: "A bus number cannot be changed after the bus is created.",
+  // Routes
+  INVALID_ROUTE_CODE:
+    "Enter a valid route code: up to 30 letters, digits, spaces, “/” or “-”.",
+  INVALID_ROUTE_NAME: "Enter a route name of up to 100 characters.",
+  INVALID_ROUTE_ORIGIN: "Enter an origin of up to 100 characters.",
+  INVALID_ROUTE_DESTINATION: "Enter a destination of up to 100 characters.",
+  INVALID_ROUTE_STATUS: "Choose a valid route status.",
+  INVALID_ROUTE_ID: "This route identifier is not valid.",
+  INVALID_ROUTE_FILTER:
+    "One of the filters is not valid. Check the values and try again.",
+  ROUTE_NOT_FOUND: "This route no longer exists. Refresh the list.",
+  ROUTE_ALREADY_EXISTS:
+    "A route with this code already exists. Route codes are unique and are never reused, even after archiving.",
+  ROUTE_ARCHIVED: "This route is archived and can no longer be changed.",
+  ROUTE_ALREADY_ARCHIVED: "This route is already archived.",
+  ROUTE_CODE_IMMUTABLE: "A route code cannot be changed after the route is created.",
   NETWORK_ERROR: "Cannot reach the server. Check your connection and try again.",
   UNKNOWN: "Something went wrong. Please try again.",
 };
@@ -270,3 +286,43 @@ export const setBusStatus = (id, status) =>
 
 export const archiveBus = (id) =>
   apiRequest(`/buses/${id}/archive`, { method: "POST" });
+
+// ---- Routes ------------------------------------------------------------------
+//
+// GET    /routes             ?q &status &archived &page &limit
+//                            -> { items, page, limit, total }
+// GET    /routes/selectable  ?q &page &limit  (unblocked, non-archived only)
+// GET    /routes/:id         -> route
+// POST   /routes             { routeCode, name, origin, destination, status? }
+// PUT    /routes/:id         { name?, origin?, destination? }  (routeCode is immutable)
+// PATCH  /routes/:id/status  { status: "unblocked" | "blocked" }
+// POST   /routes/:id/archive
+
+function buildQuery(filters) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+  }
+  const query = params.toString();
+  return query ? "?" + query : "";
+}
+
+export const listRoutes = (filters = {}) => apiRequest("/routes" + buildQuery(filters));
+
+// For the future Scheduling screens: only routes a new assignment may use.
+export const listSelectableRoutes = (filters = {}) =>
+  apiRequest("/routes/selectable" + buildQuery(filters));
+
+export const getRoute = (id) => apiRequest(`/routes/${id}`);
+
+export const createRoute = (input) =>
+  apiRequest("/routes", { method: "POST", body: input });
+
+export const updateRoute = (id, changes) =>
+  apiRequest(`/routes/${id}`, { method: "PUT", body: changes });
+
+export const setRouteStatus = (id, status) =>
+  apiRequest(`/routes/${id}/status`, { method: "PATCH", body: { status } });
+
+export const archiveRoute = (id) =>
+  apiRequest(`/routes/${id}/archive`, { method: "POST" });
