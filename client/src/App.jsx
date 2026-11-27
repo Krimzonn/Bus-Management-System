@@ -1,4 +1,6 @@
+
 import { useEffect, useState } from "react";
+import DriversPage from "./pages/DriverPage.jsx";
 import {
   errorMessage,
   getCurrentUser,
@@ -24,6 +26,7 @@ import "./theme.css";
 const HOME_NAV = { key: "home", label: "Home", icon: "home" };
 const BUSES_NAV = { key: "buses", label: "Buses", icon: "bus" };
 const ROUTES_NAV = { key: "routes", label: "Routes", icon: "route" };
+const DRIVERS_NAV = { key: "drivers", label: "Drivers", icon: "users" };
 const ADMIN_NAV = [
   { key: "accounts", label: "Accounts", icon: "users" },
   { key: "audit", label: "Audit log", icon: "clock" },
@@ -36,11 +39,13 @@ function Authenticated({ user, onLogout }) {
   // UI hints only; the backend checks "view-buses" / "view-routes" on every request.
   const canViewBuses = can(user, CAPABILITIES.VIEW_BUSES);
   const canViewRoutes = can(user, CAPABILITIES.VIEW_ROUTES);
+    const canViewDrivers = can(user, CAPABILITIES.VIEW_DRIVERS);
 
-  const navItems = [
+   const navItems = [
     HOME_NAV,
     ...(canViewBuses ? [BUSES_NAV] : []),
     ...(canViewRoutes ? [ROUTES_NAV] : []),
+    ...(canViewDrivers ? [DRIVERS_NAV] : []),
     ...(isAdmin ? ADMIN_NAV : []),
   ];
   // A user can never land on a page they have no nav item for, even if state were changed.
@@ -64,7 +69,9 @@ function Authenticated({ user, onLogout }) {
         <BusesPage user={user} />
       ) : current === "routes" ? (
         <RoutesPage user={user} />
-      ) : current === "accounts" && isAdmin ? (
+      ) : current === "drivers" ? (
+        <DriversPage user={user} /> 
+      ): current === "accounts" && isAdmin ? (
         <AccountsPage currentUser={user} />
       ) : current === "audit" && isAdmin ? (
         <AuditPage />
