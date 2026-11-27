@@ -12,6 +12,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import BusesPage from "./pages/BusesPage.jsx";
+import RoutesPage from "./pages/RoutesPage.jsx";
 import { navigate, usePath } from "./utils/navigation.js";
 import { CAPABILITIES, can } from "./utils/permissions.js";
 import "./App.css";
@@ -22,6 +23,7 @@ import "./theme.css";
 
 const HOME_NAV = { key: "home", label: "Home", icon: "home" };
 const BUSES_NAV = { key: "buses", label: "Buses", icon: "bus" };
+const ROUTES_NAV = { key: "routes", label: "Routes", icon: "route" };
 const ADMIN_NAV = [
   { key: "accounts", label: "Accounts", icon: "users" },
   { key: "audit", label: "Audit log", icon: "clock" },
@@ -31,12 +33,14 @@ function Authenticated({ user, onLogout }) {
   const [page, setPage] = useState("home");
   const [loggingOut, setLoggingOut] = useState(false);
   const isAdmin = user.role === "admin";
-  // UI hint only; the backend checks "view-buses" on every request.
+  // UI hints only; the backend checks "view-buses" / "view-routes" on every request.
   const canViewBuses = can(user, CAPABILITIES.VIEW_BUSES);
+  const canViewRoutes = can(user, CAPABILITIES.VIEW_ROUTES);
 
   const navItems = [
     HOME_NAV,
     ...(canViewBuses ? [BUSES_NAV] : []),
+    ...(canViewRoutes ? [ROUTES_NAV] : []),
     ...(isAdmin ? ADMIN_NAV : []),
   ];
   // A user can never land on a page they have no nav item for, even if state were changed.
@@ -58,6 +62,8 @@ function Authenticated({ user, onLogout }) {
     >
       {current === "buses" ? (
         <BusesPage user={user} />
+      ) : current === "routes" ? (
+        <RoutesPage user={user} />
       ) : current === "accounts" && isAdmin ? (
         <AccountsPage currentUser={user} />
       ) : current === "audit" && isAdmin ? (
