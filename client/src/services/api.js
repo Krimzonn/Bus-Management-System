@@ -62,7 +62,20 @@ const ERROR_MESSAGES = {
     "A route with this code already exists. Route codes are unique and are never reused, even after archiving.",
   ROUTE_ARCHIVED: "This route is archived and can no longer be changed.",
   ROUTE_ALREADY_ARCHIVED: "This route is already archived.",
-  ROUTE_CODE_IMMUTABLE: "A route code cannot be changed after the route is created.",
+  ROUTE_CODE_IMMUTABLE: "A route code cannot be changed after the route is created.",  // Drivers
+  INVALID_DRIVER_NAME: "Enter a driver name of up to 100 characters.",
+  INVALID_LICENSE_NUMBER:
+    "Enter a valid license number: up to 30 letters, digits, spaces, “/” or “-”.",
+  INVALID_LICENSE_EXPIRY_DATE: "Enter a valid license expiry date.",
+  INVALID_DRIVER_STATUS: "Choose a valid driver status.",
+  INVALID_DRIVER_ID: "This driver identifier is not valid.",
+  INVALID_DRIVER_FILTER:
+    "One of the filters is not valid. Check the values and try again.",
+  DRIVER_NOT_FOUND: "This driver no longer exists. Refresh the list.",
+  DRIVER_LICENSE_ALREADY_EXISTS:
+    "A driver with this license number already exists. License numbers are unique, even for archived drivers.",
+  DRIVER_ARCHIVED: "This driver is archived and can no longer be changed.",
+  DRIVER_ALREADY_ARCHIVED: "This driver is already archived.",
   NETWORK_ERROR: "Cannot reach the server. Check your connection and try again.",
   UNKNOWN: "Something went wrong. Please try again.",
 };
@@ -326,3 +339,33 @@ export const setRouteStatus = (id, status) =>
 
 export const archiveRoute = (id) =>
   apiRequest(`/routes/${id}/archive`, { method: "POST" });
+// ---- Drivers ----------------------------------------------------------------
+//
+// GET    /drivers                 ?q &status &licenseStatus &licenseCategory &archived &page &limit
+//                                 -> { items, page, limit, total }
+// GET    /drivers/license-expiry  ?state (valid|expiring_soon|expired) &page &limit
+//                                 -> { state, asOf, expiringSoonThrough, items, page, limit, total }
+// GET    /drivers/:id             -> driver
+// POST   /drivers                 { fullName, licenseNumber, licenseCategory, licenseExpiryDate, status? }
+// PUT    /drivers/:id             any of fullName, licenseNumber, licenseCategory, licenseExpiryDate
+// PATCH  /drivers/:id/status      { status: "available" | "on_leave" | "absent" }
+// POST   /drivers/:id/archive
+
+export const listDrivers = (filters = {}) => apiRequest("/drivers" + buildQuery(filters));
+
+export const listLicenseExpiry = (filters = {}) =>
+  apiRequest("/drivers/license-expiry" + buildQuery(filters));
+
+export const getDriver = (id) => apiRequest(`/drivers/${id}`);
+
+export const createDriver = (input) =>
+  apiRequest("/drivers", { method: "POST", body: input });
+
+export const updateDriver = (id, changes) =>
+  apiRequest(`/drivers/${id}`, { method: "PUT", body: changes });
+
+export const setDriverStatus = (id, status) =>
+  apiRequest(`/drivers/${id}/status`, { method: "PATCH", body: { status } });
+
+export const archiveDriver = (id) =>
+  apiRequest(`/drivers/${id}/archive`, { method: "POST" });

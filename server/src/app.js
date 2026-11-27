@@ -6,6 +6,7 @@ import accountRoutes from "./modules/auth/account-routes.js";
 import auditRoutes from "./modules/audit/routes.js";
 import busRoutes from "./modules/fleet/routes.js";
 import routeRoutes from "./modules/routes/routes.js";
+import driverRoutes from "./modules/drivers/routes.js";
 
 const app = express();
 app.use(express.json());
@@ -32,6 +33,7 @@ app.use("/api/v1/accounts", accountRoutes);
 app.use("/api/v1/audit", auditRoutes);
 app.use("/api/v1/buses", busRoutes);
 app.use("/api/v1/routes", routeRoutes);
+app.use("/api/v1/drivers", driverRoutes);
 
 app.use((req, res) => res.status(404).json({
   success: false, message: "Route not found.", data: null,

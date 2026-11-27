@@ -21,5 +21,16 @@ export const ACTIONS = Object.freeze({
   "route.updated": { entity: "route", fields: ["name", "origin", "destination"] },
   "route.status_changed": { entity: "route", fields: ["status"] },
   "route.archived": { entity: "route", fields: ["isArchived"] },
+  "driver.created": {
+    entity: "driver",
+    fields: ["fullName", "licenseNumber", "licenseCategory", "licenseExpiryDate", "status", "isArchived"],
+  },
+  "driver.updated": { entity: "driver", fields: ["fullName"] },
+  "driver.license_updated": {
+    entity: "driver",
+    fields: ["licenseNumber", "licenseCategory", "licenseExpiryDate"],
+  },
+  "driver.status_changed": { entity: "driver", fields: ["status"] },
+  "driver.archived": { entity: "driver", fields: ["isArchived"] },
 });
-export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus", "route"]);
+export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus", "route", "driver"]);
