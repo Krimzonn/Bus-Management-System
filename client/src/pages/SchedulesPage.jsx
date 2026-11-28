@@ -45,20 +45,30 @@ const ACTION_NOTICE = {
 };
 
 const dateOk = (value) =>
-  value === "" || (isCalendarDate(value) && value >= MIN_TRAVEL_DATE && value <= MAX_TRAVEL_DATE);
+  value === "" ||
+  (isCalendarDate(value) &&
+    value >= MIN_TRAVEL_DATE &&
+    value <= MAX_TRAVEL_DATE);
 
 const rangeInvalid = (f) =>
-  !dateOk(f.dateFrom) || !dateOk(f.dateTo) || Boolean(f.dateFrom && f.dateTo && f.dateFrom > f.dateTo);
+  !dateOk(f.dateFrom) ||
+  !dateOk(f.dateTo) ||
+  Boolean(f.dateFrom && f.dateTo && f.dateFrom > f.dateTo);
 
 // The API may return a schedule directly or wrapped as { schedule }.
 const unwrap = (response) =>
-  response && typeof response === "object" && response.schedule && typeof response.schedule === "object"
+  response &&
+  typeof response === "object" &&
+  response.schedule &&
+  typeof response.schedule === "object"
     ? response.schedule
     : response;
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia ? window.matchMedia(query).matches : false,
+    typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia(query).matches
+      : false,
   );
   useEffect(() => {
     if (!window.matchMedia) return undefined;
@@ -124,7 +134,13 @@ export default function SchedulesPage({ user }) {
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const [list, setList] = useState({ items: [], total: 0, loading: true, error: "", loaded: false });
+  const [list, setList] = useState({
+    items: [],
+    total: 0,
+    loading: true,
+    error: "",
+    loaded: false,
+  });
   const [stats, setStats] = useState({ loading: true, counts: null });
   const [detail, setDetail] = useState(null);
   const [form, setForm] = useState(null); // { mode: "create" } | { mode: "edit", schedule }
@@ -153,7 +169,12 @@ export default function SchedulesPage({ user }) {
     let cancelled = false;
     setList((current) => ({ ...current, loading: true, error: "" }));
     api
-      .list({ ...scope, status: applied.status, page: String(page), limit: String(PAGE_SIZE) })
+      .list({
+        ...scope,
+        status: applied.status,
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      })
       .then((data) => {
         if (cancelled) return;
         setList({
@@ -166,7 +187,11 @@ export default function SchedulesPage({ user }) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setList((current) => ({ ...current, loading: false, error: scheduleErrorMessage(err) }));
+        setList((current) => ({
+          ...current,
+          loading: false,
+          error: scheduleErrorMessage(err),
+        }));
       });
     return () => {
       cancelled = true;
@@ -175,7 +200,13 @@ export default function SchedulesPage({ user }) {
 
   // If the current page no longer exists (e.g. after cancelling the last row), step back.
   useEffect(() => {
-    if (!list.loading && !list.error && list.items.length === 0 && list.total > 0 && page > 1) {
+    if (
+      !list.loading &&
+      !list.error &&
+      list.items.length === 0 &&
+      list.total > 0 &&
+      page > 1
+    ) {
       setPage(Math.max(1, Math.ceil(list.total / PAGE_SIZE)));
     }
   }, [list, page]);
@@ -220,7 +251,11 @@ export default function SchedulesPage({ user }) {
     const next = { ...filters, [key]: value };
     setFilters(next);
     if (rangeInvalid(next)) {
-      setApplied((previous) => ({ ...next, dateFrom: previous.dateFrom, dateTo: previous.dateTo }));
+      setApplied((previous) => ({
+        ...next,
+        dateFrom: previous.dateFrom,
+        dateTo: previous.dateTo,
+      }));
     } else {
       setApplied(next);
     }
@@ -243,7 +278,9 @@ export default function SchedulesPage({ user }) {
       try {
         const fresh = unwrap(await api.get(id));
         if (fresh && fresh.id === id) {
-          setDetail((current) => (current && current.id === id ? { ...current, ...fresh } : current));
+          setDetail((current) =>
+            current && current.id === id ? { ...current, ...fresh } : current,
+          );
         }
       } catch {
         // The details stay as they are; the list reload shows what still exists.
@@ -261,7 +298,11 @@ export default function SchedulesPage({ user }) {
     try {
       const updated = unwrap(await api[kind](schedule.id));
       if (updated && updated.id === schedule.id) {
-        setDetail((current) => (current && current.id === schedule.id ? { ...current, ...updated } : current));
+        setDetail((current) =>
+          current && current.id === schedule.id
+            ? { ...current, ...updated }
+            : current,
+        );
       }
       refreshDetail(schedule.id);
       setNotice(ACTION_NOTICE[kind]);
@@ -272,6 +313,47 @@ export default function SchedulesPage({ user }) {
         reload();
       }
       throw err; // ScheduleDetails shows the message
+    }
+  }
+
+  /* ---- Slice 8: replacement driver ---- */
+
+  // POST /schedules/:id/replacement returned the updated schedule (with bus, driver and
+  // route summaries). Show it at once, re-read it from the server, and refresh the list
+  // and the status counts so the new driver appears everywhere.
+  function handleReplaced(updated, candidate) {
+    const next = unwrap(updated);
+    if (next && next.id) {
+      setDetail((current) =>
+        current && current.id === next.id ? { ...current, ...next } : current,
+      );
+      refreshDetail(next.id);
+    }
+    const name = candidate?.fullName ?? next?.driver?.fullName;
+    setNotice(
+      name
+        ? `Driver replaced. ${name} is now assigned to this trip.`
+        : "Driver replaced.",
+    );
+    reload();
+  }
+
+  // The trip itself changed while the manager was choosing (it started, was cancelled, or
+  // no longer exists). Re-read it so the details stop offering the replacement action, and
+  // close the details if the trip is gone.
+  async function handleReplacementStale(id) {
+    reload();
+    try {
+      const fresh = unwrap(await api.get(id));
+      if (fresh && fresh.id === id) {
+        setDetail((current) =>
+          current && current.id === id ? { ...current, ...fresh } : current,
+        );
+      }
+    } catch (err) {
+      if (err?.code === "SCHEDULE_NOT_FOUND") {
+        setDetail((current) => (current && current.id === id ? null : current));
+      }
     }
   }
 
@@ -291,7 +373,9 @@ export default function SchedulesPage({ user }) {
       try {
         const updated = unwrap(await updateSchedule(id, payload));
         if (updated && updated.id === id) {
-          setDetail((current) => (current && current.id === id ? { ...current, ...updated } : current));
+          setDetail((current) =>
+            current && current.id === id ? { ...current, ...updated } : current,
+          );
         }
         refreshDetail(id);
         setNotice("Schedule updated.");
@@ -316,7 +400,10 @@ export default function SchedulesPage({ user }) {
   /* ---- Derived view data ---- */
   const needle = search.trim().toLowerCase();
   const rows = useMemo(
-    () => (needle ? list.items.filter((row) => rowSearchText(row).includes(needle)) : list.items),
+    () =>
+      needle
+        ? list.items.filter((row) => rowSearchText(row).includes(needle))
+        : list.items,
     [list.items, needle],
   );
   const totalPages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
@@ -362,10 +449,18 @@ export default function SchedulesPage({ user }) {
             disabled={list.loading}
             aria-label="Refresh schedules"
           >
-            <ScheduleIcon name="refresh" className={list.loading ? "sc-spin" : ""} /> Refresh
+            <ScheduleIcon
+              name="refresh"
+              className={list.loading ? "sc-spin" : ""}
+            />{" "}
+            Refresh
           </button>
           {showManage && (
-            <button type="button" className="bm-btn bm-btn-primary" onClick={() => openForm({ mode: "create" })}>
+            <button
+              type="button"
+              className="bm-btn bm-btn-primary"
+              onClick={() => openForm({ mode: "create" })}
+            >
               <ScheduleIcon name="plus" /> Create schedule
             </button>
           )}
@@ -374,9 +469,18 @@ export default function SchedulesPage({ user }) {
 
       {notice && (
         <div className="sc-toast" role="status">
-          <ScheduleIcon name="checkCircle" size={18} className="sc-toast-icon" />
+          <ScheduleIcon
+            name="checkCircle"
+            size={18}
+            className="sc-toast-icon"
+          />
           <span className="sc-toast-text">{notice}</span>
-          <button type="button" className="sc-icon-btn" onClick={() => setNotice("")} aria-label="Dismiss message">
+          <button
+            type="button"
+            className="sc-icon-btn"
+            onClick={() => setNotice("")}
+            aria-label="Dismiss message"
+          >
             <ScheduleIcon name="x" size={16} />
           </button>
         </div>
@@ -390,7 +494,12 @@ export default function SchedulesPage({ user }) {
           onClick={() => handleFilterChange("status", "")}
         >
           <span className="sc-stat-value">
-            {stats.counts?.all ?? (stats.loading ? <span className="sc-skeleton sc-skeleton-num" /> : "—")}
+            {stats.counts?.all ??
+              (stats.loading ? (
+                <span className="sc-skeleton sc-skeleton-num" />
+              ) : (
+                "—"
+              ))}
           </span>
           <span className="sc-stat-label">All trips</span>
         </button>
@@ -400,11 +509,20 @@ export default function SchedulesPage({ user }) {
             type="button"
             className={`sc-stat sc-tone-${status.tone}`}
             aria-pressed={applied.status === status.value}
-            onClick={() => handleFilterChange("status", applied.status === status.value ? "" : status.value)}
+            onClick={() =>
+              handleFilterChange(
+                "status",
+                applied.status === status.value ? "" : status.value,
+              )
+            }
           >
             <span className="sc-stat-value">
               {stats.counts?.[status.value] ??
-                (stats.loading ? <span className="sc-skeleton sc-skeleton-num" /> : "—")}
+                (stats.loading ? (
+                  <span className="sc-skeleton sc-skeleton-num" />
+                ) : (
+                  "—"
+                ))}
             </span>
             <span className="sc-stat-label">{status.label}</span>
           </button>
@@ -424,7 +542,11 @@ export default function SchedulesPage({ user }) {
       />
 
       <div className={`sc-workspace${showDetailPanel ? " sc-has-detail" : ""}`}>
-        <section className="sc-panel sc-list-panel" aria-label="Schedule list" aria-busy={list.loading}>
+        <section
+          className="sc-panel sc-list-panel"
+          aria-label="Schedule list"
+          aria-busy={list.loading}
+        >
           {list.error && (
             <div className="sc-list-error">
               <p className="bm-alert bm-alert-error" role="alert">
@@ -437,7 +559,11 @@ export default function SchedulesPage({ user }) {
           )}
 
           {initialLoading && !list.error ? (
-            <div className="sc-skeleton-list" role="status" aria-label="Loading schedules">
+            <div
+              className="sc-skeleton-list"
+              role="status"
+              aria-label="Loading schedules"
+            >
               {Array.from({ length: 6 }, (_, index) => (
                 <div className="sc-skeleton sc-skeleton-row" key={index} />
               ))}
@@ -447,13 +573,24 @@ export default function SchedulesPage({ user }) {
               <StateBlock icon="search" title="No trips match these filters">
                 Try widening the date range or clearing a filter.
                 <div className="sc-state-actions">
-                  <button type="button" className="bm-btn" onClick={handleReset}>
+                  <button
+                    type="button"
+                    className="bm-btn"
+                    onClick={handleReset}
+                  >
                     Reset filters
                   </button>
                 </div>
               </StateBlock>
             ) : (
-              <StateBlock icon="inbox" title={mode === "own" ? "No trips assigned to you yet" : "No schedules yet"}>
+              <StateBlock
+                icon="inbox"
+                title={
+                  mode === "own"
+                    ? "No trips assigned to you yet"
+                    : "No schedules yet"
+                }
+              >
                 {mode === "own"
                   ? "When a manager assigns you a trip, it will appear here."
                   : showManage
@@ -461,7 +598,11 @@ export default function SchedulesPage({ user }) {
                     : "Schedules created by a manager will appear here."}
                 {showManage && (
                   <div className="sc-state-actions">
-                    <button type="button" className="bm-btn bm-btn-primary" onClick={() => openForm({ mode: "create" })}>
+                    <button
+                      type="button"
+                      className="bm-btn bm-btn-primary"
+                      onClick={() => openForm({ mode: "create" })}
+                    >
                       <ScheduleIcon name="plus" /> Create schedule
                     </button>
                   </div>
@@ -469,17 +610,27 @@ export default function SchedulesPage({ user }) {
               </StateBlock>
             )
           ) : list.loaded && rows.length === 0 && !list.error ? (
-            <StateBlock icon="search" title="No rows on this page match your search">
-              The search only covers the {list.items.length} trips loaded on this page.
+            <StateBlock
+              icon="search"
+              title="No rows on this page match your search"
+            >
+              The search only covers the {list.items.length} trips loaded on
+              this page.
               <div className="sc-state-actions">
-                <button type="button" className="bm-btn" onClick={() => setSearch("")}>
+                <button
+                  type="button"
+                  className="bm-btn"
+                  onClick={() => setSearch("")}
+                >
                   Clear search
                 </button>
               </div>
             </StateBlock>
           ) : rows.length > 0 ? (
             <>
-              <div className={`sc-table-wrap${list.loading ? " is-loading" : ""}`}>
+              <div
+                className={`sc-table-wrap${list.loading ? " is-loading" : ""}`}
+              >
                 <table className="sc-table">
                   <caption className="sc-sr-only">
                     {title}: page {page} of {totalPages}
@@ -510,17 +661,25 @@ export default function SchedulesPage({ user }) {
                           onClick={() => openDetail(row)}
                         >
                           <td data-label="Date">
-                            <span className="sc-cell-primary">{formatDate(row.travelDate)}</span>
+                            <span className="sc-cell-primary">
+                              {formatDate(row.travelDate)}
+                            </span>
                           </td>
                           <td data-label="Time">
                             <span className="sc-cell-primary sc-nowrap">
                               {row.departureTime} → {row.arrivalTime}
                             </span>
-                            {overnight && <span className="sc-cell-sub">Arrives next day</span>}
+                            {overnight && (
+                              <span className="sc-cell-sub">
+                                Arrives next day
+                              </span>
+                            )}
                           </td>
                           <td data-label="Route">
                             <span className="sc-cell-primary">
-                              {row.route ? row.route.routeCode : `#${row.routeId}`}
+                              {row.route
+                                ? row.route.routeCode
+                                : `#${row.routeId}`}
                             </span>
                             {row.route && (
                               <span className="sc-cell-sub">
@@ -528,8 +687,14 @@ export default function SchedulesPage({ user }) {
                               </span>
                             )}
                           </td>
-                          <td data-label="Bus">{row.bus ? row.bus.busNumber : `#${row.busId}`}</td>
-                          <td data-label="Driver">{row.driver ? row.driver.fullName : `#${row.driverId}`}</td>
+                          <td data-label="Bus">
+                            {row.bus ? row.bus.busNumber : `#${row.busId}`}
+                          </td>
+                          <td data-label="Driver">
+                            {row.driver
+                              ? row.driver.fullName
+                              : `#${row.driverId}`}
+                          </td>
                           <td data-label="Status">
                             <ScheduleStatusBadge status={row.status} />
                           </td>
@@ -575,7 +740,9 @@ export default function SchedulesPage({ user }) {
                   <button
                     type="button"
                     className="bm-btn sc-btn-small"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
                     disabled={page <= 1 || list.loading}
                   >
                     <ScheduleIcon name="chevronLeft" /> Previous
@@ -586,7 +753,9 @@ export default function SchedulesPage({ user }) {
                   <button
                     type="button"
                     className="bm-btn sc-btn-small"
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
                     disabled={page >= totalPages || list.loading}
                   >
                     Next <ScheduleIcon name="chevronRight" />
@@ -609,6 +778,8 @@ export default function SchedulesPage({ user }) {
               onClose={() => setDetail(null)}
               onEdit={(schedule) => openForm({ mode: "edit", schedule })}
               onAction={handleAction}
+              onReplaced={handleReplaced}
+              onReplacementStale={handleReplacementStale}
             />
           </aside>
         )}
@@ -625,6 +796,8 @@ export default function SchedulesPage({ user }) {
           onClose={() => setDetail(null)}
           onEdit={(schedule) => openForm({ mode: "edit", schedule })}
           onAction={handleAction}
+          onReplaced={handleReplaced}
+          onReplacementStale={handleReplacementStale}
         />
       )}
 
