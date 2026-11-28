@@ -111,6 +111,17 @@ export function parseUpdateInput(body) {
   );
 }
 
+// null removes the link. The key is required so an empty body cannot unlink.
+export function parseAccountLinkInput(body) {
+  const { userId } = plainObject(body, ["userId"]);
+  if (userId === null) return null;
+  const text = typeof userId === "number" && Number.isSafeInteger(userId) ? String(userId) : userId;
+  if (typeof text !== "string" || !/^\d{1,18}$/.test(text) || BigInt(text) < 1n) {
+    throw driverError("INVALID_ACCOUNT_ID", 400);
+  }
+  return String(BigInt(text));
+}
+
 export function parseStatusInput(body) {
   return parseStatus(plainObject(body, ["status"]).status);
 }

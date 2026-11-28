@@ -3,4 +3,7 @@
 export {
   evaluateDriverEligibility,
   getDriverAssignmentEligibility,
+  getDriverIdForAccount,
+  getDriverSummaries,
+  lockDriverForAssignment,
 } from "./service.js";

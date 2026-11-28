@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import DriversPage from "./pages/DriverPage.jsx";
 import {
@@ -15,6 +14,7 @@ import HomePage from "./pages/HomePage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import BusesPage from "./pages/BusesPage.jsx";
 import RoutesPage from "./pages/RoutesPage.jsx";
+import SchedulesPage from "./pages/SchedulesPage.jsx";
 import { navigate, usePath } from "./utils/navigation.js";
 import { CAPABILITIES, can } from "./utils/permissions.js";
 import "./App.css";
@@ -27,6 +27,8 @@ const HOME_NAV = { key: "home", label: "Home", icon: "home" };
 const BUSES_NAV = { key: "buses", label: "Buses", icon: "bus" };
 const ROUTES_NAV = { key: "routes", label: "Routes", icon: "route" };
 const DRIVERS_NAV = { key: "drivers", label: "Drivers", icon: "users" };
+const SCHEDULES_NAV = { key: "schedules", label: "Schedules", icon: "calendar" };
+const TRIPS_NAV = { key: "schedules", label: "My trips", icon: "calendar" };
 const ADMIN_NAV = [
   { key: "accounts", label: "Accounts", icon: "users" },
   { key: "audit", label: "Audit log", icon: "clock" },
@@ -36,16 +38,19 @@ function Authenticated({ user, onLogout }) {
   const [page, setPage] = useState("home");
   const [loggingOut, setLoggingOut] = useState(false);
   const isAdmin = user.role === "admin";
-  // UI hints only; the backend checks "view-buses" / "view-routes" on every request.
+  // UI hints only; the backend checks each capability on every request.
   const canViewBuses = can(user, CAPABILITIES.VIEW_BUSES);
   const canViewRoutes = can(user, CAPABILITIES.VIEW_ROUTES);
-    const canViewDrivers = can(user, CAPABILITIES.VIEW_DRIVERS);
+  const canViewDrivers = can(user, CAPABILITIES.VIEW_DRIVERS);
+  const canViewSchedules = can(user, CAPABILITIES.VIEW_SCHEDULES);
+  const canViewOwnTrips = can(user, CAPABILITIES.VIEW_OWN_TRIPS);
 
-   const navItems = [
+  const navItems = [
     HOME_NAV,
     ...(canViewBuses ? [BUSES_NAV] : []),
     ...(canViewRoutes ? [ROUTES_NAV] : []),
     ...(canViewDrivers ? [DRIVERS_NAV] : []),
+    ...(canViewSchedules ? [SCHEDULES_NAV] : canViewOwnTrips ? [TRIPS_NAV] : []),
     ...(isAdmin ? ADMIN_NAV : []),
   ];
   // A user can never land on a page they have no nav item for, even if state were changed.
@@ -70,8 +75,10 @@ function Authenticated({ user, onLogout }) {
       ) : current === "routes" ? (
         <RoutesPage user={user} />
       ) : current === "drivers" ? (
-        <DriversPage user={user} /> 
-      ): current === "accounts" && isAdmin ? (
+        <DriversPage user={user} />
+      ) : current === "schedules" ? (
+        <SchedulesPage user={user} />
+      ) : current === "accounts" && isAdmin ? (
         <AccountsPage currentUser={user} />
       ) : current === "audit" && isAdmin ? (
         <AuditPage />

@@ -3,8 +3,8 @@
 //
 // /auth/me currently returns only { id, email, role } (no capabilities), so
 // these lists mirror the approved baselines in migrations 007_fleet_buses.sql,
-// 008_routes.sql and 009_drivers.sql. Replace this with real capabilities once
-// the API exposes them.
+// 008_routes.sql, 009_drivers.sql and 012_scheduling.sql. Replace this with real
+// capabilities once the API exposes them.
 
 export const CAPABILITIES = Object.freeze({
   VIEW_BUSES: "view-buses",
@@ -13,6 +13,10 @@ export const CAPABILITIES = Object.freeze({
   MANAGE_ROUTES: "manage-routes",
   VIEW_DRIVERS: "view-drivers",
   MANAGE_DRIVERS: "manage-drivers",
+  VIEW_SCHEDULES: "view-schedules",
+  MANAGE_SCHEDULES: "manage-schedules",
+  VIEW_OWN_TRIPS: "view-own-trips",
+  OPERATE_OWN_TRIPS: "operate-own-trips",
 });
 
 const MANAGER_CAPABILITIES = [
@@ -22,6 +26,8 @@ const MANAGER_CAPABILITIES = [
   CAPABILITIES.MANAGE_ROUTES,
   CAPABILITIES.VIEW_DRIVERS,
   CAPABILITIES.MANAGE_DRIVERS,
+  CAPABILITIES.VIEW_SCHEDULES,
+  CAPABILITIES.MANAGE_SCHEDULES,
 ];
 
 const ROLE_CAPABILITIES = Object.freeze({
@@ -31,7 +37,9 @@ const ROLE_CAPABILITIES = Object.freeze({
     CAPABILITIES.VIEW_BUSES,
     CAPABILITIES.VIEW_ROUTES,
     CAPABILITIES.VIEW_DRIVERS,
+    CAPABILITIES.VIEW_SCHEDULES,
   ],
+  driver: [CAPABILITIES.VIEW_OWN_TRIPS, CAPABILITIES.OPERATE_OWN_TRIPS],
 });
 
 export function can(user, capability) {

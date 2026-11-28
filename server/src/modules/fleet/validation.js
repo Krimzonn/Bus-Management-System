@@ -53,6 +53,31 @@ export function parseBusId(value) {
   return value;
 }
 
+// A default route or driver is only a stored id here: Fleet does not depend on
+// Routes or Drivers, so Scheduling validates it when it is used. null clears it.
+export function parseDefaultId(value, errorCode) {
+  if (value === null) return null;
+  const text = typeof value === "number" && Number.isSafeInteger(value) ? String(value) : value;
+  if (typeof text !== "string" || !/^\d{1,18}$/.test(text) || BigInt(text) < 1n) {
+    throw fleetError(errorCode, 400);
+  }
+  return String(BigInt(text));
+}
+
+const DEFAULT_ID_ERRORS = Object.freeze({
+  defaultRouteId: "INVALID_DEFAULT_ROUTE_ID",
+  defaultDriverId: "INVALID_DEFAULT_DRIVER_ID",
+});
+
+// Only the defaults that were sent are returned.
+function parseDefaults(input) {
+  const defaults = {};
+  for (const [key, errorCode] of Object.entries(DEFAULT_ID_ERRORS)) {
+    if (input[key] !== undefined) defaults[key] = parseDefaultId(input[key], errorCode);
+  }
+  return defaults;
+}
+
 function plainObject(body, allowed) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw fleetError("INVALID_INPUT", 400);
   for (const key of Object.keys(body)) {
@@ -62,20 +87,26 @@ function plainObject(body, allowed) {
 }
 
 export function parseCreateInput(body) {
-  const input = plainObject(body, ["busNumber", "seatingCapacity", "status", "requiredLicenseCategory"]);
+  const input = plainObject(body, [
+    "busNumber", "seatingCapacity", "status", "requiredLicenseCategory",
+    ...Object.keys(DEFAULT_ID_ERRORS),
+  ]);
   return {
     busNumber: parseBusNumber(input.busNumber),
     seatingCapacity: parseSeatingCapacity(input.seatingCapacity),
     requiredLicenseCategory: parseLicenseCategory(input.requiredLicenseCategory),
     status: input.status === undefined ? "active" : parseStatus(input.status),
+    ...parseDefaults(input),
   };
 }
 
 // Status is changed only through its own endpoint.
 export function parseUpdateInput(body) {
-  const input = plainObject(body, ["busNumber", "seatingCapacity", "requiredLicenseCategory"]);
+  const input = plainObject(body, [
+    "busNumber", "seatingCapacity", "requiredLicenseCategory", ...Object.keys(DEFAULT_ID_ERRORS),
+  ]);
   if (Object.keys(input).length === 0) throw fleetError("INVALID_INPUT", 400);
-  const changes = {};
+  const changes = parseDefaults(input);
   if (input.busNumber !== undefined) changes.busNumber = parseBusNumber(input.busNumber);
   if (input.seatingCapacity !== undefined) changes.seatingCapacity = parseSeatingCapacity(input.seatingCapacity);
   if (input.requiredLicenseCategory !== undefined) {
