@@ -11,7 +11,8 @@ async function startServer() {
       console.log(`Environment: ${env.nodeEnv}`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error.message);
+   console.error("Failed to start server:", error);
+  console.error("Error stack:", error?.stack);
     process.exit(1);
   }
 }

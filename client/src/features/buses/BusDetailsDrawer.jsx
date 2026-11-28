@@ -4,6 +4,7 @@ import BusStatusBadge, { ArchivedBadge } from "./BusStatusBadge.jsx";
 import Dialog from "./Dialog.jsx";
 import { BUS_STATUSES, busErrorMessage, formatDateTime } from "./busModel.js";
 import MaintenanceHistory from "../maintenance/MaintenanceHistory.jsx";
+import FuelHistory from "../fuel/FuelHistory.jsx";
 
 function Row({ label, children }) {
   return (
@@ -137,6 +138,8 @@ export default function BusDetailsDrawer({
           </section>
 
           <MaintenanceHistory busId={bus.id} />
+
+          <FuelHistory busId={bus.id} />
 
           {editable && (
             <>
