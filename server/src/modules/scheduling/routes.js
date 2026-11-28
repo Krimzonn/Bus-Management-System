@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireCsrf } from "../../middleware/csrf.js";
 import { requireAuthentication } from "../../middleware/authenticate.js";
 import { requireCapability } from "../../middleware/authorize.js";
+import { getReplacementCandidates, replaceDriver } from "./replacement.js";
 import {
   cancelSchedule, completeOwnTrip, completeTrip, createSchedule, getOwnSchedule, getSchedule,
   listOwnSchedules, listSchedules, startOwnTrip, startTrip, updateSchedule,
@@ -51,5 +52,13 @@ router.post("/:id/complete", requireCsrf, manageSchedules, async (req, res) =>
 
 router.post("/:id/cancel", requireCsrf, manageSchedules, async (req, res) =>
   success(res, await cancelSchedule({ id: req.params.id, ...actor(req) })));
+
+// Slice 8: replacement drivers. Manager/Admin only (manage-schedules); the
+// manager picks the candidate, the system never assigns one.
+router.get("/:id/replacement-candidates", manageSchedules, async (req, res) =>
+  success(res, await getReplacementCandidates(req.params.id)));
+
+router.post("/:id/replacement", requireCsrf, manageSchedules, async (req, res) =>
+  success(res, await replaceDriver({ id: req.params.id, input: req.body, ...actor(req) })));
 
 export default router;

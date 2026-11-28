@@ -7,3 +7,4 @@ export {
   getDriverSummaries,
   lockDriverForAssignment,
 } from "./service.js";
+export { listReplacementCandidates } from "./candidates.js";

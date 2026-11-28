@@ -45,6 +45,7 @@ export const ACTIONS = Object.freeze({
   },
   "schedule.updated": { entity: "schedule", fields: ["travelDate", "departureTime", "arrivalTime"] },
   "schedule.assignment_changed": { entity: "schedule", fields: ["busId", "driverId", "routeId"] },
+  "schedule.driver_replaced": { entity: "schedule", fields: ["driverId"] },
   "schedule.started": { entity: "schedule", fields: ["status"] },
   "schedule.completed": { entity: "schedule", fields: ["status"] },
   "schedule.cancelled": { entity: "schedule", fields: ["status"] },

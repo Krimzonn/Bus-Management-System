@@ -17,9 +17,9 @@ import {
   scheduleError,
 } from "./validation.js";
 
-const TABLE = "scheduling_schedules";
+export const TABLE = "scheduling_schedules";
 // Dates and times are read as text so no time-zone conversion can shift them.
-const COLUMNS = `id, to_char(travel_date, 'YYYY-MM-DD') AS travel_date,
+export const COLUMNS = `id, to_char(travel_date, 'YYYY-MM-DD') AS travel_date,
   to_char(departure_time, 'HH24:MI') AS departure_time,
   to_char(arrival_time, 'HH24:MI') AS arrival_time,
   bus_id, driver_id, route_id, status,
@@ -47,7 +47,7 @@ const MAX_ATTEMPTS = 3;
 // deadlock_detected, serialization_failure
 const RETRYABLE = new Set(["40P01", "40001"]);
 
-function toSchedule(row) {
+export function toSchedule(row) {
   return {
     id: String(row.id),
     travelDate: row.travel_date,
@@ -86,11 +86,11 @@ async function withSummaries(schedules, executor = pool) {
   }));
 }
 
-const withSummary = async (schedule, executor) => (await withSummaries([schedule], executor))[0];
+export const withSummary = async (schedule, executor) => (await withSummaries([schedule], executor))[0];
 
 // One transaction per attempt. Two writers that clash can deadlock inside the
 // exclusion check; PostgreSQL aborts one, and its retry then sees the winner.
-async function writeSchedule(operation) {
+export async function writeSchedule(operation) {
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await withTransaction(operation);
@@ -104,7 +104,7 @@ async function writeSchedule(operation) {
   }
 }
 
-async function lockSchedule(client, id) {
+export async function lockSchedule(client, id) {
   const result = await client.query(`${SELECT_SCHEDULE} WHERE id = $1 FOR UPDATE`, [id]);
   return result.rows.length ? toSchedule(result.rows[0]) : null;
 }
