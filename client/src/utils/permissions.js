@@ -3,9 +3,9 @@
 //
 // /auth/me currently returns only { id, email, role } (no capabilities), so
 // these lists mirror the approved baselines in migrations 007_fleet_buses.sql,
-// 008_routes.sql, 009_drivers.sql, 012_scheduling.sql, 013_recruitment.sql and
-// 014_fleet_maintenance.sql. Replace this with real capabilities once the API
-// exposes them.
+// 008_routes.sql, 009_drivers.sql, 012_scheduling.sql, 013_recruitment.sql,
+// 014_fleet_maintenance.sql and 015_fuel.sql. Replace this with real
+// capabilities once the API exposes them.
 
 export const CAPABILITIES = Object.freeze({
   APPLY_RECRUITMENT: "apply-recruitment",
@@ -24,6 +24,9 @@ export const CAPABILITIES = Object.freeze({
   VIEW_MAINTENANCE: "view-maintenance",
   MANAGE_MAINTENANCE: "manage-maintenance",
   ARCHIVE_MAINTENANCE: "archive-maintenance",
+  VIEW_FUEL: "view-fuel",
+  MANAGE_FUEL: "manage-fuel",
+  ARCHIVE_FUEL: "archive-fuel",
 });
 
 const MANAGER_CAPABILITIES = [
@@ -44,17 +47,24 @@ const MAINTENANCE_CAPABILITIES = [
   CAPABILITIES.MANAGE_MAINTENANCE,
 ];
 
+// Same split for fuel records (migration 015): three roles view and manage,
+// only Admin archives.
+const FUEL_CAPABILITIES = [CAPABILITIES.VIEW_FUEL, CAPABILITIES.MANAGE_FUEL];
+
 const ROLE_CAPABILITIES = Object.freeze({
   admin: [
     ...MANAGER_CAPABILITIES,
     ...MAINTENANCE_CAPABILITIES,
     CAPABILITIES.ARCHIVE_MAINTENANCE,
+    ...FUEL_CAPABILITIES,
+    CAPABILITIES.ARCHIVE_FUEL,
     CAPABILITIES.VIEW_RECRUITMENT,
     CAPABILITIES.MANAGE_RECRUITMENT,
   ],
   transportation_manager: [
     ...MANAGER_CAPABILITIES,
     ...MAINTENANCE_CAPABILITIES,
+    ...FUEL_CAPABILITIES,
     CAPABILITIES.VIEW_RECRUITMENT,
   ],
   applicant: [CAPABILITIES.APPLY_RECRUITMENT],
@@ -64,6 +74,7 @@ const ROLE_CAPABILITIES = Object.freeze({
     CAPABILITIES.VIEW_DRIVERS,
     CAPABILITIES.VIEW_SCHEDULES,
     ...MAINTENANCE_CAPABILITIES,
+    ...FUEL_CAPABILITIES,
   ],
   driver: [CAPABILITIES.VIEW_OWN_TRIPS, CAPABILITIES.OPERATE_OWN_TRIPS],
 });

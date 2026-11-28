@@ -141,15 +141,20 @@ test("an update with no real change writes nothing", async (t) => {
 });
 
 test("update rejects missing and archived records and a next date before the service date", async (t) => {
-  let client = lockedClient(t, null, null);
+  lockedClient(t, null, null);
   await assert.rejects(updateMaintenance({ id: "5", input: { cost: 1 }, ...actor }), { code: "MAINTENANCE_NOT_FOUND", status: 404 });
+
   t.mock.restoreAll();
-  client = lockedClient(t, row({ archived_at: new Date(), archived_by: "7" }), null);
+
+  lockedClient(t, row({ archived_at: new Date(), archived_by: "7" }), null);
   await assert.rejects(updateMaintenance({ id: "5", input: { cost: 1 }, ...actor }), { code: "MAINTENANCE_ARCHIVED", status: 409 });
+
   t.mock.restoreAll();
-  client = lockedClient(t, row(), null);
+
+  const client = lockedClient(t, row(), null);
   await assert.rejects(updateMaintenance({ id: "5", input: { nextServiceDate: "2026-10-31" }, ...actor }),
     { code: "NEXT_SERVICE_DATE_BEFORE_SERVICE_DATE", status: 400 });
+
   assert.equal(position(client, /^UPDATE/), -1);
   assert.equal(sqls(client).at(-1), "ROLLBACK");
 });
