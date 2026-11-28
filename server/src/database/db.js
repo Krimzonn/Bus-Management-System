@@ -14,7 +14,12 @@ pool.on("error", (err) => {
 
 // Test database connection
 export async function testDatabaseConnection() {
-  const result = await pool.query("SELECT NOW()");
+ const result = await pool.query(
+  "SELECT NOW(), current_user, current_database()"
+);
+
+console.log("Database user:", result.rows[0].current_user);
+console.log("Database name:", result.rows[0].current_database);
 
   console.log("Database connected successfully.");
   return result.rows[0];

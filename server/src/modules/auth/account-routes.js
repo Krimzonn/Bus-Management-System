@@ -15,8 +15,20 @@ function success(res, data, status = 200) {
   return res.status(status).json({ success: true, data });
 }
 function handleError(error, res) {
+  console.error("Account route error:", {
+    code: error.code,
+    message: error.message,
+    detail: error.detail,
+    table: error.table,
+    schema: error.schema,
+    constraint: error.constraint,
+    where: error.where,
+  });
+
   return res.status(error.status || 500).json({
-    success: false, code: error.code || "INTERNAL_SERVER_ERROR", data: null,
+    success: false,
+    code: error.code || "INTERNAL_SERVER_ERROR",
+    data: null,
   });
 }
 router.use(requireAuthentication);
