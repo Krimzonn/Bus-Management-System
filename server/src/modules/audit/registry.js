@@ -134,6 +134,22 @@ export const ACTIONS = Object.freeze({
     ],
   },
   "maintenance.archived": { entity: "maintenance", fields: ["isArchived"] },
+  "fuel.created": {
+    entity: "fuel",
+    fields: [
+      "busId",
+      "purchaseDate",
+      "liters",
+      "totalCost",
+      "odometer",
+      "isArchived",
+    ],
+  },
+  "fuel.updated": {
+    entity: "fuel",
+    fields: ["purchaseDate", "liters", "totalCost", "odometer"],
+  },
+  "fuel.archived": { entity: "fuel", fields: ["isArchived"] },
 });
 export const ENTITY_TYPES = Object.freeze([
   "account",
@@ -144,4 +160,5 @@ export const ENTITY_TYPES = Object.freeze([
   "schedule",
   "application",
   "maintenance",
+  "fuel",
 ]);
