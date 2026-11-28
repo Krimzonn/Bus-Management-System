@@ -8,3 +8,4 @@ export {
   lockBusForAssignment,
 } from "./service.js";
 export { getBusRecordStates } from "./bus-records.js";
+export { listMaintenanceDueAlerts } from "./maintenance-alerts.js";

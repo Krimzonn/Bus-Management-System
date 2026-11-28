@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "./database/db.js";
 import { sessionMiddleware } from "./config/session.js";
+import { wireNotifications } from "./config/notifications.js";
 import authRoutes from "./modules/auth/routes.js";
 import accountRoutes from "./modules/auth/account-routes.js";
 import auditRoutes from "./modules/audit/routes.js";
@@ -11,6 +12,11 @@ import routeRoutes from "./modules/routes/routes.js";
 import driverRoutes from "./modules/drivers/routes.js";
 import scheduleRoutes from "./modules/scheduling/routes.js";
 import recruitmentRoutes from "./modules/recruitment/routes.js";
+import notificationRoutes from "./modules/notifications/routes.js";
+
+// Connects Notifications to Scheduling and to the modules that supply recipients
+// and alerts (ADR-009). Wiring only: no timers are started here.
+wireNotifications();
 
 const app = express();
 app.use(express.json());
@@ -33,13 +39,11 @@ app.get("/api/v1/health", async (_req, res) => {
       data: { status: "healthy", database: "connected" },
     });
   } catch {
-    return res
-      .status(503)
-      .json({
-        success: false,
-        message: "Database connection unavailable.",
-        data: null,
-      });
+    return res.status(503).json({
+      success: false,
+      message: "Database connection unavailable.",
+      data: null,
+    });
   }
 });
 
@@ -53,6 +57,7 @@ app.use("/api/v1/routes", routeRoutes);
 app.use("/api/v1/drivers", driverRoutes);
 app.use("/api/v1/schedules", scheduleRoutes);
 app.use("/api/v1/recruitment", recruitmentRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 
 app.use((req, res) =>
   res.status(404).json({

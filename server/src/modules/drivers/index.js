@@ -9,3 +9,7 @@ export {
   lockDriverForAssignment,
 } from "./service.js";
 export { listReplacementCandidates } from "./candidates.js";
+export {
+  getAccountIdForDriver,
+  listLicenseAlerts,
+} from "./notification-queries.js";

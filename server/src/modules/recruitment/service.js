@@ -3,6 +3,7 @@ import { pool } from "../../database/db.js";
 import { withTransaction } from "../../database/transaction.js";
 import { recordStrict } from "../audit/writer.js";
 import { createDriver, getDriverIdForAccount } from "../drivers/index.js";
+import { notifyApplicantStatusChange } from "../notifications/index.js";
 import {
   application,
   error,
@@ -110,7 +111,7 @@ export async function changeStatus(applicationId, input, user) {
   const decisionReason = string(reason, 255, false);
   if (!["selected", "rejected"].includes(status) && decisionReason !== null)
     throw error("INVALID_RECRUITMENT_INPUT");
-  return withTransaction(async (client) => {
+  const updated = await withTransaction(async (client) => {
     const before = await find(client, applicationId, null, true);
     transition(before.status, status, before.interview_outcome);
     const r = await client.query(
@@ -123,6 +124,14 @@ export async function changeStatus(applicationId, input, user) {
     });
     return row;
   });
+  // After commit, best effort (ADR-005): this never throws and never touches the
+  // business transaction, so a notification failure cannot undo the status change.
+  void notifyApplicantStatusChange({
+    applicantId: updated.applicant_id,
+    applicationId: updated.id,
+    status: updated.status,
+  });
+  return updated;
 }
 export async function recordInterview(applicationId, input, user) {
   const { date, notes, outcome } = interview(input, businessToday());
