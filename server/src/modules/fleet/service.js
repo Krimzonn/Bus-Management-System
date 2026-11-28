@@ -11,12 +11,15 @@ import {
 } from "./validation.js";
 
 const COLUMNS = `id, bus_number, seating_capacity, status, required_license_category,
-  is_archived, archived_at, created_at, updated_at`;
+  is_archived, archived_at, created_at, updated_at, default_route_id, default_driver_id`;
 const SELECT_BUS = `SELECT ${COLUMNS} FROM fleet_buses`;
 const UPDATABLE = {
   seatingCapacity: "seating_capacity",
   requiredLicenseCategory: "required_license_category",
+  defaultRouteId: "default_route_id",
+  defaultDriverId: "default_driver_id",
 };
+const toId = (value) => (value == null ? null : String(value));
 
 function toBus(row) {
   return {
@@ -25,6 +28,8 @@ function toBus(row) {
     seatingCapacity: row.seating_capacity,
     status: row.status,
     requiredLicenseCategory: row.required_license_category,
+    defaultRouteId: toId(row.default_route_id),
+    defaultDriverId: toId(row.default_driver_id),
     isArchived: row.is_archived,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
@@ -51,15 +56,21 @@ export async function createBus({ input, actorId, actorEmail }) {
   try {
     return await withTransaction(async (client) => {
       const result = await client.query(
-        `INSERT INTO fleet_buses (bus_number, seating_capacity, status, required_license_category)
-         VALUES ($1, $2, $3, $4) RETURNING ${COLUMNS}`,
-        [bus.busNumber, bus.seatingCapacity, bus.status, bus.requiredLicenseCategory],
+        `INSERT INTO fleet_buses
+           (bus_number, seating_capacity, status, required_license_category,
+            default_route_id, default_driver_id)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING ${COLUMNS}`,
+        [bus.busNumber, bus.seatingCapacity, bus.status, bus.requiredLicenseCategory,
+          bus.defaultRouteId ?? null, bus.defaultDriverId ?? null],
       );
       const created = toBus(result.rows[0]);
       await recordStrict(client, {
         actorId, actorEmail, action: "bus.created", entityType: "bus", entityId: created.id,
         before: null,
-        after: pick(created, ["busNumber", "seatingCapacity", "requiredLicenseCategory", "status", "isArchived"]),
+        after: pick(created, [
+          "busNumber", "seatingCapacity", "requiredLicenseCategory", "status", "isArchived",
+          "defaultRouteId", "defaultDriverId",
+        ]),
       });
       return created;
     });
@@ -195,7 +206,33 @@ export function evaluateBusEligibility(bus) {
   return { eligible: true, reason: null, requiredLicenseCategory: bus.requiredLicenseCategory };
 }
 
-export async function getBusAssignmentEligibility(id) {
-  const result = await pool.query(`${SELECT_BUS} WHERE id = $1`, [parseBusId(id)]);
+// `executor` lets Scheduling pass its own transaction client; defaults to the pool.
+export async function getBusAssignmentEligibility(id, executor = pool) {
+  const result = await executor.query(`${SELECT_BUS} WHERE id = $1`, [parseBusId(id)]);
   return evaluateBusEligibility(result.rows.length ? toBus(result.rows[0]) : null);
+}
+
+// Holds a share lock on the bus until the caller's transaction ends, so its
+// status or archival cannot change between an eligibility check and the write
+// that relies on it. A missing bus locks nothing.
+export async function lockBusForAssignment(id, executor) {
+  await executor.query("SELECT id FROM fleet_buses WHERE id = $1 FOR SHARE", [parseBusId(id)]);
+}
+
+// Stored defaults, not validated: the caller checks eligibility before using one.
+export async function getBusScheduleDefaults(id, executor = pool) {
+  const result = await executor.query(`${SELECT_BUS} WHERE id = $1`, [parseBusId(id)]);
+  if (!result.rows.length) return null;
+  const { defaultRouteId, defaultDriverId } = toBus(result.rows[0]);
+  return { defaultRouteId, defaultDriverId };
+}
+
+// Minimal display data, including archived buses so that history stays readable.
+export async function getBusSummaries(ids, executor = pool) {
+  if (!ids.length) return [];
+  const result = await executor.query(
+    "SELECT id, bus_number FROM fleet_buses WHERE id = ANY($1::bigint[])",
+    [ids],
+  );
+  return result.rows.map((row) => ({ id: String(row.id), busNumber: row.bus_number }));
 }

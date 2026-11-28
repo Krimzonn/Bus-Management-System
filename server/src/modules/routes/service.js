@@ -214,3 +214,22 @@ export async function getRouteAssignmentEligibility(id, executor = pool) {
   const result = await executor.query(`${SELECT_ROUTE} WHERE id = $1`, [parseRouteId(id)]);
   return evaluateRouteEligibility(result.rows.length ? toRoute(result.rows[0]) : null);
 }
+
+// Holds a share lock on the route until the caller's transaction ends, so it
+// cannot be blocked or archived between an eligibility check and the write.
+export async function lockRouteForAssignment(id, executor) {
+  await executor.query(`SELECT id FROM ${TABLE} WHERE id = $1 FOR SHARE`, [parseRouteId(id)]);
+}
+
+// Minimal display data, including archived routes so that history stays readable.
+export async function getRouteSummaries(ids, executor = pool) {
+  if (!ids.length) return [];
+  const result = await executor.query(
+    `SELECT id, route_code, name, origin, destination FROM ${TABLE} WHERE id = ANY($1::bigint[])`,
+    [ids],
+  );
+  return result.rows.map((row) => ({
+    id: String(row.id), routeCode: row.route_code, name: row.name,
+    origin: row.origin, destination: row.destination,
+  }));
+}

@@ -281,3 +281,76 @@ export async function getDriverAssignmentEligibility(id, requirements, executor 
   const result = await executor.query(`${SELECT_DRIVER} WHERE id = $1`, [parseDriverId(id)]);
   return evaluateDriverEligibility(result.rows.length ? toDriver(result.rows[0]) : null, requirements);
 }
+
+// Holds a share lock on the driver until the caller's transaction ends, so the
+// status, license or archival cannot change between a check and the write.
+export async function lockDriverForAssignment(id, executor) {
+  await executor.query(`SELECT id FROM ${TABLE} WHERE id = $1 FOR SHARE`, [parseDriverId(id)]);
+}
+
+// Minimal display data (no license details), including archived drivers.
+export async function getDriverSummaries(ids, executor = pool) {
+  if (!ids.length) return [];
+  const result = await executor.query(
+    `SELECT id, full_name FROM ${TABLE} WHERE id = ANY($1::bigint[])`,
+    [ids],
+  );
+  return result.rows.map((row) => ({ id: String(row.id), fullName: row.full_name }));
+}
+
+// The driver record linked to a login account, or null.
+export async function getDriverIdForAccount(userId, executor = pool) {
+  const result = await executor.query(
+    `SELECT id FROM ${TABLE} WHERE account_user_id = $1`,
+    [userId],
+  );
+  return result.rows.length ? String(result.rows[0].id) : null;
+}
+
+async function readAccountLink(executor, driverId, lock = "") {
+  const result = await executor.query(
+    `SELECT account_user_id, is_archived FROM ${TABLE} WHERE id = $1 ${lock}`,
+    [driverId],
+  );
+  if (!result.rows.length) throw driverError("DRIVER_NOT_FOUND", 404);
+  const row = result.rows[0];
+  return {
+    userId: row.account_user_id == null ? null : String(row.account_user_id),
+    isArchived: row.is_archived,
+  };
+}
+
+export async function getDriverAccountLink(id) {
+  const driverId = parseDriverId(id);
+  const { userId } = await readAccountLink(pool, driverId);
+  return { driverId, userId };
+}
+
+// Links (or, with null, unlinks) a login account. The caller must already have
+// verified the account through Identity & Access.
+export async function setDriverAccountLink({ id, userId, actorId, actorEmail }) {
+  const driverId = parseDriverId(id);
+
+  try {
+    return await withTransaction(async (client) => {
+      const before = await readAccountLink(client, driverId, "FOR UPDATE");
+      if (before.userId === userId) return { driverId, userId };
+      // An archived driver can be unlinked but not given a new account.
+      if (userId !== null) assertNotArchived(before);
+      await client.query(
+        `UPDATE ${TABLE} SET account_user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [userId, driverId],
+      );
+      await recordStrict(client, {
+        actorId, actorEmail, action: "driver.account_link_changed", entityType: "driver",
+        entityId: driverId, before: { accountUserId: before.userId }, after: { accountUserId: userId },
+      });
+      return { driverId, userId };
+    });
+  } catch (error) {
+    if (error.code === "23505" && error.constraint === "drivers_drivers_account_key") {
+      throw driverError("DRIVER_ACCOUNT_ALREADY_LINKED", 409);
+    }
+    throw error;
+  }
+}

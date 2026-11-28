@@ -9,9 +9,15 @@ export const ACTIONS = Object.freeze({
   "auth.logout": { entity: "auth", fields: ["email"] },
   "bus.created": {
     entity: "bus",
-    fields: ["busNumber", "seatingCapacity", "requiredLicenseCategory", "status", "isArchived"],
+    fields: [
+      "busNumber", "seatingCapacity", "requiredLicenseCategory", "status", "isArchived",
+      "defaultRouteId", "defaultDriverId",
+    ],
   },
-  "bus.updated": { entity: "bus", fields: ["seatingCapacity", "requiredLicenseCategory"] },
+  "bus.updated": {
+    entity: "bus",
+    fields: ["seatingCapacity", "requiredLicenseCategory", "defaultRouteId", "defaultDriverId"],
+  },
   "bus.status_changed": { entity: "bus", fields: ["status"] },
   "bus.archived": { entity: "bus", fields: ["isArchived"] },
   "route.created": {
@@ -32,5 +38,15 @@ export const ACTIONS = Object.freeze({
   },
   "driver.status_changed": { entity: "driver", fields: ["status"] },
   "driver.archived": { entity: "driver", fields: ["isArchived"] },
+  "driver.account_link_changed": { entity: "driver", fields: ["accountUserId"] },
+  "schedule.created": {
+    entity: "schedule",
+    fields: ["travelDate", "departureTime", "arrivalTime", "busId", "driverId", "routeId", "status"],
+  },
+  "schedule.updated": { entity: "schedule", fields: ["travelDate", "departureTime", "arrivalTime"] },
+  "schedule.assignment_changed": { entity: "schedule", fields: ["busId", "driverId", "routeId"] },
+  "schedule.started": { entity: "schedule", fields: ["status"] },
+  "schedule.completed": { entity: "schedule", fields: ["status"] },
+  "schedule.cancelled": { entity: "schedule", fields: ["status"] },
 });
-export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus", "route", "driver"]);
+export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus", "route", "driver", "schedule"]);

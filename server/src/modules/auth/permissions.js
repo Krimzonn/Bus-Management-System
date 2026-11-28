@@ -53,3 +53,16 @@ export async function loadRoleCapabilities() {
 
   return buildRoleCapabilities(result.rows);
 }
+
+// True only for an existing, active account whose role holds the capability.
+export async function userHasCapability(userId, capability, executor = pool) {
+  const result = await executor.query(
+    `SELECT 1
+     FROM iam_users AS u
+     INNER JOIN iam_role_capabilities AS assignments ON assignments.role_id = u.role_id
+     INNER JOIN iam_capabilities AS capabilities ON capabilities.id = assignments.capability_id
+     WHERE u.id = $1 AND u.is_active AND capabilities.capability_key = $2`,
+    [userId, capability],
+  );
+  return result.rows.length > 0;
+}

@@ -3,5 +3,7 @@
 export {
   evaluateRouteEligibility,
   getRouteAssignmentEligibility,
+  getRouteSummaries,
   listSelectableRoutes,
+  lockRouteForAssignment,
 } from "./service.js";
