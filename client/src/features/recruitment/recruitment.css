@@ -1,0 +1,172 @@
+.rec-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(12px, 3vw, 32px);
+  color: #142b46;
+}
+.rec-page header {
+  margin-bottom: 24px;
+}
+.rec-page h1 {
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  margin: 0.2rem 0;
+}
+.rec-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #836b36;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.rec-card {
+  background: #fff;
+  border: 1px solid #e1e6ed;
+  border-radius: 14px;
+  padding: clamp(16px, 3vw, 26px);
+  margin: 16px 0;
+  box-shadow: 0 3px 12px #142b4609;
+}
+.rec-card h2 {
+  margin: 0 0 14px;
+  font-size: 1.25rem;
+}
+.rec-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+.rec-form {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+}
+.rec-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.rec-filters,
+.rec-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.rec-filters > * {
+  flex: 1;
+  min-width: 150px;
+}
+.rec-list {
+  display: grid;
+  gap: 8px;
+}
+.rec-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  text-align: start;
+  border: 1px solid #e1e6ed;
+  background: #fafbfc;
+  border-radius: 9px;
+  padding: 13px;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 180ms,
+    border-color 180ms;
+}
+.rec-list-item:hover {
+  background: #f5f0e4;
+  border-color: #b49b62;
+}
+.rec-list-item small,
+.rec-history small {
+  display: block;
+  color: #526276;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.rec-badge {
+  border-radius: 999px;
+  background: #e8edf4;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rec-selected {
+  background: #e1f3e7;
+  color: #21613b;
+}
+.rec-rejected {
+  background: #fbe7e7;
+  color: #8a3030;
+}
+.rec-progress {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  gap: 8px;
+  margin: 20px 0;
+}
+.rec-progress li {
+  flex: 1;
+  min-width: 110px;
+  border-top: 3px solid #dce2e9;
+  padding: 10px 4px;
+  font-size: 0.85rem;
+}
+.rec-progress .rec-current {
+  border-color: #a98b4c;
+  font-weight: 700;
+}
+.rec-progress .rec-done {
+  border-color: #285d51;
+}
+.rec-history {
+  padding-inline-start: 24px;
+}
+.rec-history li {
+  margin: 12px 0;
+}
+.rec-history p {
+  margin: 4px 0;
+}
+@media (max-width: 550px) {
+  .rec-list-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-list-item {
+    transition: none;
+  }
+}
+
+.rec-pagination {
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+.rec-pagination span {
+  font-size: 0.9rem;
+}
+.rec-list-item[aria-pressed="true"] {
+  border-color: #a98b4c;
+  background: #f5f0e4;
+}
+.rec-page header > .bm-btn {
+  margin-top: 8px;
+}
+.rec-card p {
+  overflow-wrap: anywhere;
+}

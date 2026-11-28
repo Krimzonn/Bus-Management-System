@@ -35,6 +35,19 @@ const FILTER_LABELS = {
 
 // Same actions as before; tone only controls the badge colour.
 const ACTION_META = {
+  "recruitment.submitted": { label: "Application submitted", tone: "green" },
+  "recruitment.status_changed": {
+    label: "Application status changed",
+    tone: "blue",
+  },
+  "recruitment.interview_recorded": {
+    label: "Interview recorded",
+    tone: "violet",
+  },
+  "recruitment.driver_registered": {
+    label: "Applicant registered as driver",
+    tone: "green",
+  },
   "account.created": { label: "Account created", tone: "green" },
   "account.email_updated": { label: "Account email updated", tone: "blue" },
   "account.role_changed": { label: "Account role changed", tone: "violet" },
@@ -44,7 +57,11 @@ const ACTION_META = {
   "auth.logout": { label: "Logout", tone: "slate" },
 };
 
-const ENTITY_LABELS = { account: "Account", auth: "Authentication" };
+const ENTITY_LABELS = {
+  application: "Recruitment application",
+  account: "Account",
+  auth: "Authentication",
+};
 const FIELD_LABELS = { email: "Email", role: "Role", isActive: "Status" };
 
 // Local messages for backend codes that api.js does not translate yet.

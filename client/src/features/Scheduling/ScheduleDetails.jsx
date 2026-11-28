@@ -1,8 +1,13 @@
 import { useId, useState } from "react";
+import ReplacementDrawer from "./ReplacementDrawer.jsx";
 import ScheduleDialog from "./ScheduleDialog.jsx";
 import ScheduleIcon from "./ScheduleIcon.jsx";
 import ScheduleStatusBadge from "./ScheduleStatusBadge.jsx";
-import { formatDate, formatDateTime, scheduleErrorMessage } from "./scheduleModel.js";
+import {
+  formatDate,
+  formatDateTime,
+  scheduleErrorMessage,
+} from "./scheduleModel.js";
 
 function Row({ label, children }) {
   return (
@@ -38,6 +43,10 @@ const CONFIRM = {
 // Presentational. onAction(schedule, "start" | "complete" | "cancel") is supplied
 // by the workspace, calls the API and throws on failure. Which buttons appear
 // is only a convenience: the backend allows or refuses every action itself.
+//
+// Slice 8: onReplaced(updatedSchedule) and onReplacementStale(id) are supplied by the
+// page. The replacement action is offered only to roles with manage-schedules, and
+// only while the trip has not started.
 export default function ScheduleDetails({
   schedule,
   mode, // "manage" | "own"
@@ -47,6 +56,8 @@ export default function ScheduleDetails({
   onClose,
   onEdit,
   onAction,
+  onReplaced,
+  onReplacementStale,
 }) {
   const uid = useId();
   const titleId = `${uid}-title`;
@@ -56,6 +67,7 @@ export default function ScheduleDetails({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(null);
+  const [replacing, setReplacing] = useState(false);
 
   async function confirmAction() {
     const kind = confirming;
@@ -78,7 +90,9 @@ export default function ScheduleDetails({
   const canStart = (manage || operate) && status === "scheduled";
   const canComplete = (manage || operate) && status === "in_progress";
   const canCancel = manage && status === "scheduled";
-  const hasActions = canEdit || canStart || canComplete || canCancel;
+  const canReplace = manage && status === "scheduled";
+  const hasActions =
+    canEdit || canStart || canComplete || canCancel || canReplace;
   const finished = status === "completed" || status === "cancelled";
   const overnight = schedule.arrivalDate !== schedule.travelDate;
   const route = schedule.route;
@@ -90,10 +104,14 @@ export default function ScheduleDetails({
         <div className="sc-detail-head-main">
           <div className="sc-badge-row">
             <ScheduleStatusBadge status={status} />
-            {overnight && <span className="sc-badge sc-tone-navy">Overnight</span>}
+            {overnight && (
+              <span className="sc-badge sc-tone-navy">Overnight</span>
+            )}
           </div>
           <h2 className="sc-detail-title" id={titleId}>
-            {route ? `${route.routeCode} · ${route.origin} → ${route.destination}` : `Route #${schedule.routeId}`}
+            {route
+              ? `${route.routeCode} · ${route.origin} → ${route.destination}`
+              : `Route #${schedule.routeId}`}
           </h2>
           <p className="sc-detail-sub">Trip #{schedule.id}</p>
         </div>
@@ -121,8 +139,8 @@ export default function ScheduleDetails({
         )}
         {finished && (
           <p className="bm-alert bm-alert-info" role="status">
-            This trip is {status === "completed" ? "completed" : "cancelled"}. It is kept for
-            history and can no longer be changed.
+            This trip is {status === "completed" ? "completed" : "cancelled"}.
+            It is kept for history and can no longer be changed.
           </p>
         )}
 
@@ -134,9 +152,15 @@ export default function ScheduleDetails({
             <div className="sc-trip-end">
               <span className="sc-trip-label">Departure</span>
               <span className="sc-trip-time">{schedule.departureTime}</span>
-              <span className="sc-trip-date">{formatDate(schedule.travelDate, true)}</span>
+              <span className="sc-trip-date">
+                {formatDate(schedule.travelDate, true)}
+              </span>
             </div>
-            <ScheduleIcon name="arrowRight" size={20} className="sc-trip-arrow" />
+            <ScheduleIcon
+              name="arrowRight"
+              size={20}
+              className="sc-trip-arrow"
+            />
             <div className="sc-trip-end">
               <span className="sc-trip-label">Arrival</span>
               <span className="sc-trip-time">{schedule.arrivalTime}</span>
@@ -153,8 +177,14 @@ export default function ScheduleDetails({
             Assignment
           </h3>
           <dl className="sc-dl">
-            <Row label="Bus">{schedule.bus ? schedule.bus.busNumber : `#${schedule.busId}`}</Row>
-            <Row label="Driver">{schedule.driver ? schedule.driver.fullName : `#${schedule.driverId}`}</Row>
+            <Row label="Bus">
+              {schedule.bus ? schedule.bus.busNumber : `#${schedule.busId}`}
+            </Row>
+            <Row label="Driver">
+              {schedule.driver
+                ? schedule.driver.fullName
+                : `#${schedule.driverId}`}
+            </Row>
             <Row label="Route">
               {route ? (
                 <>
@@ -177,9 +207,19 @@ export default function ScheduleDetails({
           <dl className="sc-dl">
             <Row label="Created">{formatDateTime(schedule.createdAt)}</Row>
             <Row label="Last updated">{formatDateTime(schedule.updatedAt)}</Row>
-            {schedule.startedAt && <Row label="Started">{formatDateTime(schedule.startedAt)}</Row>}
-            {schedule.completedAt && <Row label="Completed">{formatDateTime(schedule.completedAt)}</Row>}
-            {schedule.cancelledAt && <Row label="Cancelled">{formatDateTime(schedule.cancelledAt)}</Row>}
+            {schedule.startedAt && (
+              <Row label="Started">{formatDateTime(schedule.startedAt)}</Row>
+            )}
+            {schedule.completedAt && (
+              <Row label="Completed">
+                {formatDateTime(schedule.completedAt)}
+              </Row>
+            )}
+            {schedule.cancelledAt && (
+              <Row label="Cancelled">
+                {formatDateTime(schedule.cancelledAt)}
+              </Row>
+            )}
           </dl>
         </section>
 
@@ -190,8 +230,23 @@ export default function ScheduleDetails({
             </h3>
             <div className="sc-actions">
               {canEdit && (
-                <button type="button" className="bm-btn" onClick={() => onEdit(schedule)} disabled={busy !== ""}>
+                <button
+                  type="button"
+                  className="bm-btn"
+                  onClick={() => onEdit(schedule)}
+                  disabled={busy !== ""}
+                >
                   <ScheduleIcon name="edit" /> Edit trip
+                </button>
+              )}
+              {canReplace && (
+                <button
+                  type="button"
+                  className="bm-btn"
+                  onClick={() => setReplacing(true)}
+                  disabled={busy !== ""}
+                >
+                  <ScheduleIcon name="users" /> Find replacement drivers
                 </button>
               )}
               {canStart && (
@@ -226,7 +281,8 @@ export default function ScheduleDetails({
               )}
             </div>
             <p className="sc-field-hint sc-actions-hint">
-              Trips change status only through these actions, never automatically with time.
+              Trips change status only through these actions, never
+              automatically with time.
             </p>
           </section>
         )}
@@ -241,7 +297,10 @@ export default function ScheduleDetails({
           {content}
         </ScheduleDialog>
       ) : (
-        <section className="sc-panel sc-detail sc-fade-in" aria-labelledby={titleId}>
+        <section
+          className="sc-panel sc-detail sc-fade-in"
+          aria-labelledby={titleId}
+        >
           {content(onClose)}
         </section>
       )}
@@ -263,7 +322,13 @@ export default function ScheduleDetails({
                 {copy.text}
               </p>
               <div className="sc-confirm-actions">
-                <button type="button" className="bm-btn" onClick={close} disabled={busy !== ""} data-autofocus="">
+                <button
+                  type="button"
+                  className="bm-btn"
+                  onClick={close}
+                  disabled={busy !== ""}
+                  data-autofocus=""
+                >
                   Keep as is
                 </button>
                 <button
@@ -278,6 +343,19 @@ export default function ScheduleDetails({
             </div>
           )}
         </ScheduleDialog>
+      )}
+
+      {replacing && canReplace && (
+        <ReplacementDrawer
+          schedule={schedule}
+          canReassign={canReplace}
+          onClose={() => setReplacing(false)}
+          onReplaced={(updated, candidate) => {
+            setReplacing(false);
+            onReplaced?.(updated, candidate);
+          }}
+          onStale={(id) => onReplacementStale?.(id)}
+        />
       )}
     </>
   );

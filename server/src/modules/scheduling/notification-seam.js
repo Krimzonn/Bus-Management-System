@@ -6,9 +6,13 @@
 // setScheduleNotifier, or by calling its public interface from the default
 // below; Notifications must not import Scheduling internals.
 //
-// Events: { type: "schedule.assigned" | "schedule.changed" | "schedule.cancelled",
+// Events: { type: "schedule.assigned" | "schedule.changed" | "schedule.cancelled"
+//                 | "schedule.replacement_assigned",
 //           scheduleId, driverId, previousDriverId }
 // previousDriverId is set only when a change moved the trip to another driver.
+// "schedule.replacement_assigned" (Slice 8) is published when a manager replaces
+// the driver: driverId is the newly assigned driver (the one to notify) and
+// previousDriverId the driver who was replaced.
 //
 // Delivery is not durable yet: ADR-005 expects Notifications to persist a
 // request before sending, which that slice must add.

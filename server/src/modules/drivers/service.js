@@ -1,5 +1,8 @@
 import { pool } from "../../database/db.js";
-import { withTransaction } from "../../database/transaction.js";
+import {
+  withTransaction,
+  isActiveTransaction,
+} from "../../database/transaction.js";
 import { businessToday } from "../../utils/business-date.js";
 import { recordStrict } from "../audit/writer.js";
 import { classifyLicense, expiryWindowEnd } from "./license.js";
@@ -32,7 +35,12 @@ const LICENSE_COLUMNS = {
 };
 const UPDATABLE = { ...PROFILE_COLUMNS, ...LICENSE_COLUMNS };
 const CREATED_FIELDS = [
-  "fullName", "licenseNumber", "licenseCategory", "licenseExpiryDate", "status", "isArchived",
+  "fullName",
+  "licenseNumber",
+  "licenseCategory",
+  "licenseExpiryDate",
+  "status",
+  "isArchived",
 ];
 
 function toDriver(row, today = businessToday()) {
@@ -65,7 +73,10 @@ function mapWriteError(error) {
 }
 
 async function lockDriver(client, id) {
-  const result = await client.query(`${SELECT_DRIVER} WHERE id = $1 FOR UPDATE`, [id]);
+  const result = await client.query(
+    `${SELECT_DRIVER} WHERE id = $1 FOR UPDATE`,
+    [id],
+  );
   if (!result.rows.length) throw driverError("DRIVER_NOT_FOUND", 404);
   return toDriver(result.rows[0]);
 }
@@ -74,31 +85,53 @@ function assertNotArchived(driver) {
   if (driver.isArchived) throw driverError("DRIVER_ARCHIVED", 409);
 }
 
-export async function createDriver({ input, actorId, actorEmail }) {
+export async function createDriver({
+  input,
+  actorId,
+  actorEmail,
+  transaction,
+}) {
   const driver = parseCreateInput(input);
   try {
-    return await withTransaction(async (client) => {
+    const operation = async (client) => {
       const result = await client.query(
         `INSERT INTO ${TABLE}
            (full_name, license_number, license_category, license_expiry_date, status)
          VALUES ($1, $2, $3, $4, $5) RETURNING ${COLUMNS}`,
-        [driver.fullName, driver.licenseNumber, driver.licenseCategory,
-          driver.licenseExpiryDate, driver.status],
+        [
+          driver.fullName,
+          driver.licenseNumber,
+          driver.licenseCategory,
+          driver.licenseExpiryDate,
+          driver.status,
+        ],
       );
       const created = toDriver(result.rows[0]);
       await recordStrict(client, {
-        actorId, actorEmail, action: "driver.created", entityType: "driver", entityId: created.id,
-        before: null, after: pick(created, CREATED_FIELDS),
+        actorId,
+        actorEmail,
+        action: "driver.created",
+        entityType: "driver",
+        entityId: created.id,
+        before: null,
+        after: pick(created, CREATED_FIELDS),
       });
       return created;
-    });
+    };
+    if (transaction && !isActiveTransaction(transaction))
+      throw new Error("DRIVER_TRANSACTION_REQUIRED");
+    return transaction
+      ? await operation(transaction)
+      : await withTransaction(operation);
   } catch (error) {
     throw mapWriteError(error);
   }
 }
 
 export async function getDriver(id) {
-  const result = await pool.query(`${SELECT_DRIVER} WHERE id = $1`, [parseDriverId(id)]);
+  const result = await pool.query(`${SELECT_DRIVER} WHERE id = $1`, [
+    parseDriverId(id),
+  ]);
   if (!result.rows.length) throw driverError("DRIVER_NOT_FOUND", 404);
   return toDriver(result.rows[0]);
 }
@@ -110,21 +143,27 @@ async function queryDrivers(filters, today, orderBy) {
   const values = [];
   const param = (value) => `$${values.push(value)}`;
 
-  if (filters.archived !== "all") clauses.push(`is_archived = ${param(filters.archived === "true")}`);
+  if (filters.archived !== "all")
+    clauses.push(`is_archived = ${param(filters.archived === "true")}`);
   if (filters.status) clauses.push(`status = ${param(filters.status)}`);
-  if (filters.licenseCategory) clauses.push(`license_category = ${param(filters.licenseCategory)}`);
+  if (filters.licenseCategory)
+    clauses.push(`license_category = ${param(filters.licenseCategory)}`);
   if (filters.licenseStatus === "expired") {
     clauses.push(`license_expiry_date < ${param(today)}::date`);
   } else if (filters.licenseStatus) {
     // "valid" and "expiring_soon" both start today, so neither includes expired rows.
     clauses.push(`license_expiry_date >= ${param(today)}::date`);
     if (filters.licenseStatus === "expiring_soon") {
-      clauses.push(`license_expiry_date <= ${param(expiryWindowEnd(today))}::date`);
+      clauses.push(
+        `license_expiry_date <= ${param(expiryWindowEnd(today))}::date`,
+      );
     }
   }
   if (filters.q) {
     // Escape LIKE wildcards so the search term is always literal.
-    const matches = [`full_name ILIKE ${param(`%${escapeLike(filters.q)}%`)} ESCAPE '\\'`];
+    const matches = [
+      `full_name ILIKE ${param(`%${escapeLike(filters.q)}%`)} ESCAPE '\\'`,
+    ];
     const licenseKey = filters.q.toUpperCase().replace(LICENSE_SEPARATORS, "");
     if (licenseKey) {
       matches.push(
@@ -153,7 +192,11 @@ async function queryDrivers(filters, today, orderBy) {
 }
 
 export async function listDrivers(query) {
-  return queryDrivers(parseListFilters(query), businessToday(), "full_name ASC, id ASC");
+  return queryDrivers(
+    parseListFilters(query),
+    businessToday(),
+    "full_name ASC, id ASC",
+  );
 }
 
 // License expiry monitoring for drivers that are not archived, soonest first.
@@ -161,7 +204,11 @@ export async function listLicenseExpiry(query) {
   const filters = parseExpiryFilters(query);
   const today = businessToday();
   // Table-qualified so the DATE column is sorted, not the text output column.
-  const page = await queryDrivers(filters, today, `${TABLE}.license_expiry_date ASC, id ASC`);
+  const page = await queryDrivers(
+    filters,
+    today,
+    `${TABLE}.license_expiry_date ASC, id ASC`,
+  );
   return {
     state: filters.licenseStatus,
     asOf: today,
@@ -201,8 +248,13 @@ export async function updateDriver({ id, input, actorId, actorEmail }) {
         const changed = keys.filter((key) => Object.hasOwn(columns, key));
         if (!changed.length) continue;
         await recordStrict(client, {
-          actorId, actorEmail, action, entityType: "driver", entityId: driverId,
-          before: pick(before, changed), after: pick(after, changed),
+          actorId,
+          actorEmail,
+          action,
+          entityType: "driver",
+          entityId: driverId,
+          before: pick(before, changed),
+          after: pick(after, changed),
         });
       }
       return after;
@@ -227,8 +279,13 @@ export async function setDriverStatus({ id, input, actorId, actorEmail }) {
     );
     const after = toDriver(result.rows[0]);
     await recordStrict(client, {
-      actorId, actorEmail, action: "driver.status_changed", entityType: "driver", entityId: driverId,
-      before: { status: before.status }, after: { status: after.status },
+      actorId,
+      actorEmail,
+      action: "driver.status_changed",
+      entityType: "driver",
+      entityId: driverId,
+      before: { status: before.status },
+      after: { status: after.status },
     });
     return after;
   });
@@ -249,8 +306,13 @@ export async function archiveDriver({ id, actorId, actorEmail }) {
     );
     const after = toDriver(result.rows[0]);
     await recordStrict(client, {
-      actorId, actorEmail, action: "driver.archived", entityType: "driver", entityId: driverId,
-      before: { isArchived: false }, after: { isArchived: true },
+      actorId,
+      actorEmail,
+      action: "driver.archived",
+      entityType: "driver",
+      entityId: driverId,
+      before: { isArchived: false },
+      after: { isArchived: true },
     });
     return after;
   });
@@ -261,7 +323,10 @@ const ineligible = (reason) => ({ eligible: false, reason });
 // Public read-only eligibility interface for Scheduling (BR-02, BR-13).
 // The license is checked on the trip date, never on today's date. Fails closed,
 // reports the first failing rule and returns no driver data.
-export function evaluateDriverEligibility(driver, { tripDate, requiredLicenseCategory } = {}) {
+export function evaluateDriverEligibility(
+  driver,
+  { tripDate, requiredLicenseCategory } = {},
+) {
   const date = parseTripDate(tripDate);
   const category = parseLicenseCategory(requiredLicenseCategory);
 
@@ -272,20 +337,32 @@ export function evaluateDriverEligibility(driver, { tripDate, requiredLicenseCat
   if (driver.status !== "available") return ineligible("DRIVER_UNAVAILABLE");
   // Negated so that a missing expiry date is also treated as expired.
   if (!(driver.licenseExpiryDate >= date)) return ineligible("LICENSE_EXPIRED");
-  if (driver.licenseCategory !== category) return ineligible("LICENSE_CATEGORY_MISMATCH");
+  if (driver.licenseCategory !== category)
+    return ineligible("LICENSE_CATEGORY_MISMATCH");
   return { eligible: true, reason: null };
 }
 
 // `executor` lets Scheduling pass its own transaction client; defaults to the pool.
-export async function getDriverAssignmentEligibility(id, requirements, executor = pool) {
-  const result = await executor.query(`${SELECT_DRIVER} WHERE id = $1`, [parseDriverId(id)]);
-  return evaluateDriverEligibility(result.rows.length ? toDriver(result.rows[0]) : null, requirements);
+export async function getDriverAssignmentEligibility(
+  id,
+  requirements,
+  executor = pool,
+) {
+  const result = await executor.query(`${SELECT_DRIVER} WHERE id = $1`, [
+    parseDriverId(id),
+  ]);
+  return evaluateDriverEligibility(
+    result.rows.length ? toDriver(result.rows[0]) : null,
+    requirements,
+  );
 }
 
 // Holds a share lock on the driver until the caller's transaction ends, so the
 // status, license or archival cannot change between a check and the write.
 export async function lockDriverForAssignment(id, executor) {
-  await executor.query(`SELECT id FROM ${TABLE} WHERE id = $1 FOR SHARE`, [parseDriverId(id)]);
+  await executor.query(`SELECT id FROM ${TABLE} WHERE id = $1 FOR SHARE`, [
+    parseDriverId(id),
+  ]);
 }
 
 // Minimal display data (no license details), including archived drivers.
@@ -295,7 +372,10 @@ export async function getDriverSummaries(ids, executor = pool) {
     `SELECT id, full_name FROM ${TABLE} WHERE id = ANY($1::bigint[])`,
     [ids],
   );
-  return result.rows.map((row) => ({ id: String(row.id), fullName: row.full_name }));
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    fullName: row.full_name,
+  }));
 }
 
 // The driver record linked to a login account, or null.
@@ -328,7 +408,12 @@ export async function getDriverAccountLink(id) {
 
 // Links (or, with null, unlinks) a login account. The caller must already have
 // verified the account through Identity & Access.
-export async function setDriverAccountLink({ id, userId, actorId, actorEmail }) {
+export async function setDriverAccountLink({
+  id,
+  userId,
+  actorId,
+  actorEmail,
+}) {
   const driverId = parseDriverId(id);
 
   try {
@@ -342,13 +427,21 @@ export async function setDriverAccountLink({ id, userId, actorId, actorEmail }) 
         [userId, driverId],
       );
       await recordStrict(client, {
-        actorId, actorEmail, action: "driver.account_link_changed", entityType: "driver",
-        entityId: driverId, before: { accountUserId: before.userId }, after: { accountUserId: userId },
+        actorId,
+        actorEmail,
+        action: "driver.account_link_changed",
+        entityType: "driver",
+        entityId: driverId,
+        before: { accountUserId: before.userId },
+        after: { accountUserId: userId },
       });
       return { driverId, userId };
     });
   } catch (error) {
-    if (error.code === "23505" && error.constraint === "drivers_drivers_account_key") {
+    if (
+      error.code === "23505" &&
+      error.constraint === "drivers_drivers_account_key"
+    ) {
       throw driverError("DRIVER_ACCOUNT_ALREADY_LINKED", 409);
     }
     throw error;

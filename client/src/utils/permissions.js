@@ -3,10 +3,13 @@
 //
 // /auth/me currently returns only { id, email, role } (no capabilities), so
 // these lists mirror the approved baselines in migrations 007_fleet_buses.sql,
-// 008_routes.sql, 009_drivers.sql and 012_scheduling.sql. Replace this with real
+// 008_routes.sql, 009_drivers.sql, 012_scheduling.sql and 013_recruitment.sql. Replace this with real
 // capabilities once the API exposes them.
 
 export const CAPABILITIES = Object.freeze({
+  APPLY_RECRUITMENT: "apply-recruitment",
+  VIEW_RECRUITMENT: "view-recruitment",
+  MANAGE_RECRUITMENT: "manage-recruitment",
   VIEW_BUSES: "view-buses",
   MANAGE_BUSES: "manage-buses",
   VIEW_ROUTES: "view-routes",
@@ -31,8 +34,16 @@ const MANAGER_CAPABILITIES = [
 ];
 
 const ROLE_CAPABILITIES = Object.freeze({
-  admin: MANAGER_CAPABILITIES,
-  transportation_manager: MANAGER_CAPABILITIES,
+  admin: [
+    ...MANAGER_CAPABILITIES,
+    CAPABILITIES.VIEW_RECRUITMENT,
+    CAPABILITIES.MANAGE_RECRUITMENT,
+  ],
+  transportation_manager: [
+    ...MANAGER_CAPABILITIES,
+    CAPABILITIES.VIEW_RECRUITMENT,
+  ],
+  applicant: [CAPABILITIES.APPLY_RECRUITMENT],
   administrative_staff: [
     CAPABILITIES.VIEW_BUSES,
     CAPABILITIES.VIEW_ROUTES,

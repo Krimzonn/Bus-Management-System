@@ -1,4 +1,4 @@
-// Schedule API calls (Slice 7). All requests go through the shared apiRequest,
+// Schedule API calls (Slice 7 + Slice 8). All requests go through the shared apiRequest,
 // so session, CSRF and 401 handling are unchanged.
 //
 // Management (view-schedules / manage-schedules):
@@ -8,6 +8,13 @@
 //   POST /schedules          { travelDate, departureTime, arrivalTime, busId, driverId?, routeId? }
 //   PUT  /schedules/:id      any of the same fields (only while status is "scheduled")
 //   POST /schedules/:id/start | /complete | /cancel
+// Replacement drivers (manage-schedules, Slice 8):
+//   GET  /schedules/:id/replacement-candidates
+//        -> { scheduleId, travelDate, departureTime, arrivalTime, arrivalDate, currentDriverId,
+//             candidates: [{ id, fullName, licenseCategory, licenseExpiryDate }],
+//             summary: { evaluated, available, licenseValid, categoryQualified, withoutConflict } | null,
+//             emptyReason: string | null }
+//   POST /schedules/:id/replacement   { driverId }  -> the updated schedule
 // Driver (view-own-trips / operate-own-trips):
 //   GET  /schedules/mine     ?dateFrom &dateTo &status &page &limit
 //   GET  /schedules/mine/:id
@@ -18,7 +25,8 @@ import { apiRequest } from "../../services/api.js";
 function query(filters = {}) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, value);
   }
   const text = params.toString();
   return text ? `?${text}` : "";
@@ -46,6 +54,16 @@ export const createSchedule = (input) =>
 
 export const updateSchedule = (id, changes) =>
   apiRequest(`/schedules/${id}`, { method: "PUT", body: changes });
+
+// Slice 8: advisory suggestions (read-only) and the manager's explicit choice.
+export const getReplacementCandidates = (id) =>
+  apiRequest(`/schedules/${id}/replacement-candidates`);
+
+export const replaceDriver = (id, driverId) =>
+  apiRequest(`/schedules/${id}/replacement`, {
+    method: "POST",
+    body: { driverId },
+  });
 
 // Reads every page of a list endpoint (the backend caps a page at 100 rows).
 export async function fetchAll(list, base = {}) {

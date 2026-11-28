@@ -35,6 +35,7 @@ function Field({ id, label, error, hint, children }) {
 // API call and throws on failure. On success the page closes this dialog.
 export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
   const isEdit = mode === "edit";
+  const isRegistration = mode === "registration";
   const uid = useId();
   const ids = {
     title: `${uid}-title`,
@@ -46,7 +47,7 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
   };
 
   const [values, setValues] = useState(() => ({
-    fullName: isEdit ? driver.fullName : "",
+    fullName: isEdit || isRegistration ? driver.fullName : "",
     licenseNumber: isEdit ? driver.licenseNumber : "",
     licenseCategory: isEdit ? driver.licenseCategory : "",
     licenseExpiryDate: isEdit ? driver.licenseExpiryDate : "",
@@ -81,7 +82,13 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
       return;
     }
 
-    let payload = input;
+    let payload = isRegistration
+      ? {
+          licenseNumber: input.licenseNumber,
+          licenseCategory: input.licenseCategory,
+          licenseExpiryDate: input.licenseExpiryDate,
+        }
+      : input;
     if (isEdit) {
       payload = diffDriver(driver, input);
       if (Object.keys(payload).length === 0) {
@@ -105,7 +112,8 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
     }
   }
 
-  const describe = (key) => (errors[key] ? `${ids[key]}-error` : `${ids[key]}-hint`);
+  const describe = (key) =>
+    errors[key] ? `${ids[key]}-error` : `${ids[key]}-hint`;
   const input = (key) => ({
     id: ids[key],
     className: "dr-input",
@@ -129,7 +137,11 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
           <header className="dr-dialog-head">
             <div>
               <h2 className="dr-dialog-title" id={ids.title}>
-                {isEdit ? `Edit ${driver.fullName}` : "Add a driver"}
+                {isEdit
+                  ? `Edit ${driver.fullName}`
+                  : isRegistration
+                    ? "Register as a driver"
+                    : "Add a driver"}
               </h2>
               <p className="dr-dialog-sub">
                 {isEdit
@@ -163,9 +175,14 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
                 error={errors.fullName}
                 hint={`Up to ${MAX_NAME_LENGTH} characters.`}
               >
-                <input {...input("fullName")} maxLength={MAX_NAME_LENGTH} data-autofocus="" />
+                <input
+                  {...input("fullName")}
+                  maxLength={MAX_NAME_LENGTH}
+                  readOnly={isRegistration}
+                  data-autofocus=""
+                />
               </Field>
-              {!isEdit && (
+              {!isEdit && !isRegistration && (
                 <Field
                   id={ids.status}
                   label="Initial status"
@@ -219,7 +236,12 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
           </div>
 
           <footer className="dr-dialog-foot">
-            <button type="button" className="bm-btn" onClick={close} disabled={submitting}>
+            <button
+              type="button"
+              className="bm-btn"
+              onClick={close}
+              disabled={submitting}
+            >
               Cancel
             </button>
             <button
@@ -233,7 +255,9 @@ export default function DriverFormDialog({ mode, driver, onSubmit, onClose }) {
                   : "Adding…"
                 : isEdit
                   ? "Save changes"
-                  : "Add driver"}
+                  : isRegistration
+                    ? "Register as driver"
+                    : "Add driver"}
             </button>
           </footer>
         </form>

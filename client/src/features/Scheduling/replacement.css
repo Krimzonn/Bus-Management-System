@@ -1,0 +1,318 @@
+/* Slice 8 · Replacement driver drawer. Only rp-* classes. Buttons, alerts, the drawer
+   shell (.sc-overlay / .sc-dialog-drawer) and the confirm dialog come from
+   scheduling.css and the global bm-* styles. The drawer renders inside .sc-page, so
+   the --sc-* tokens apply; fallbacks keep it correct if it is ever rendered elsewhere. */
+
+.rp-head-main {
+  min-width: 0;
+}
+
+.rp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.1rem 1.25rem 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+.rp-body .bm-alert {
+  margin: 0;
+}
+
+/* ---- Trip context ---- */
+.rp-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  padding: 0.9rem 1rem;
+  background: var(--sc-surface-alt, #f6f8fb);
+  border: 1px solid var(--sc-border, #dde2ea);
+  border-radius: 10px;
+}
+.rp-context-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.rp-context-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sc-muted, #667085);
+}
+.rp-context-value {
+  font-size: 0.93rem;
+  font-weight: 600;
+  color: var(--sc-navy, #14284b);
+  overflow-wrap: anywhere;
+}
+.rp-context-sub {
+  font-size: 0.8rem;
+  color: var(--sc-muted, #667085);
+}
+
+/* ---- List header and funnel ---- */
+.rp-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.rp-list-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--sc-navy, #14284b);
+}
+.rp-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--sc-muted, #667085);
+}
+.rp-funnel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rp-funnel li {
+  padding: 0.15rem 0.55rem;
+  font-size: 0.76rem;
+  color: var(--sc-grey, #5f6b7a);
+  background: var(--sc-grey-soft, #eceff3);
+  border-radius: 999px;
+}
+
+/* ---- Candidate cards ---- */
+.rp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  background: var(--sc-surface, #fff);
+  border: 1px solid var(--sc-border, #dde2ea);
+  border-radius: 12px;
+  box-shadow: var(--sc-shadow, 0 1px 2px rgba(20, 40, 75, 0.06));
+  animation: rp-rise 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--rp-i, 0) * 30ms);
+  transition:
+    border-color 150ms ease,
+    box-shadow 200ms ease;
+}
+.rp-card:hover {
+  border-color: var(--sc-gold, #c9a24a);
+}
+.rp-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.rp-card-name {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--sc-navy, #14284b);
+  overflow-wrap: anywhere;
+}
+.rp-card-id {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--sc-muted, #667085);
+}
+.rp-eligible {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #14543a;
+  background: var(--sc-green-soft, #e3f4ea);
+  border: 1px solid #b9e0c9;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.rp-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rp-checks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.87rem;
+  color: var(--sc-text, #1b2433);
+}
+.rp-check-icon {
+  margin-top: 0.15rem;
+  color: var(--sc-green, #1f7a4d);
+}
+.rp-card-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- Skeleton and states ---- */
+.rp-skel-card {
+  height: 8.5rem;
+  border-radius: 12px;
+}
+.rp-state {
+  padding: 1.75rem 1rem;
+  text-align: center;
+}
+.rp-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.7rem;
+  color: var(--sc-navy, #14284b);
+  background: var(--sc-gold-soft, #f6edd6);
+  border-radius: 50%;
+}
+.rp-state-icon-red {
+  color: var(--sc-red, #b3261e);
+  background: var(--sc-red-soft, #fdeceb);
+}
+.rp-state-title {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+  color: var(--sc-navy, #14284b);
+}
+.rp-state-text {
+  max-width: 42ch;
+  margin: 0 auto;
+  font-size: 0.92rem;
+  color: var(--sc-muted, #667085);
+}
+.rp-state-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.rp-body .bm-btn,
+.rp-state .bm-btn,
+.rp-confirm-actions .bm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* ---- Confirmation ---- */
+.rp-swap {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+  margin: 0.8rem 0 0.9rem;
+}
+.rp-swap-side {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 0.85rem;
+  background: var(--sc-surface-alt, #f6f8fb);
+  border: 1px solid var(--sc-border, #dde2ea);
+  border-radius: 10px;
+}
+.rp-swap-side.is-new {
+  background: var(--sc-gold-soft, #f6edd6);
+  border-color: var(--sc-gold, #c9a24a);
+}
+.rp-swap-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sc-muted, #667085);
+}
+.rp-swap-name {
+  display: block;
+  font-weight: 600;
+  color: var(--sc-navy, #14284b);
+  overflow-wrap: anywhere;
+}
+.rp-swap-arrow {
+  align-self: center;
+  flex: none;
+  color: var(--sc-gold, #c9a24a);
+}
+.rp-confirm-trip {
+  margin: 0 0 0.4rem;
+  font-size: 0.87rem;
+  color: var(--sc-muted, #667085);
+}
+.rp-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@keyframes rp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 760px) {
+  .rp-body {
+    padding: 1rem 1rem 1.25rem;
+  }
+}
+@media (max-width: 480px) {
+  .rp-context {
+    grid-template-columns: 1fr;
+  }
+  .rp-swap {
+    flex-direction: column;
+  }
+  .rp-swap-arrow {
+    transform: rotate(90deg);
+  }
+  .rp-card-top {
+    flex-direction: column;
+  }
+  .rp-card-foot .bm-btn {
+    width: 100%;
+  }
+  .rp-confirm-actions {
+    flex-direction: column-reverse;
+  }
+  .rp-confirm-actions .bm-btn {
+    width: 100%;
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .rp-card {
+    animation: none;
+    transition: none;
+  }
+}
