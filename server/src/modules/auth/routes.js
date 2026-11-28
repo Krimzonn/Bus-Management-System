@@ -8,7 +8,11 @@ import { recordBestEffort } from "../audit/writer.js";
 const router = express.Router();
 
 router.get("/csrf", (req, res) => {
-  const token = generateCsrfToken(req);
+  const token =
+    typeof req.session.csrfToken === "string"
+      ? req.session.csrfToken
+      : generateCsrfToken(req);
+
   req.session.save((error) => {
     if (error)
       return res

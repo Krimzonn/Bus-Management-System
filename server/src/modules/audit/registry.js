@@ -109,6 +109,31 @@ export const ACTIONS = Object.freeze({
   "schedule.started": { entity: "schedule", fields: ["status"] },
   "schedule.completed": { entity: "schedule", fields: ["status"] },
   "schedule.cancelled": { entity: "schedule", fields: ["status"] },
+  "maintenance.created": {
+    entity: "maintenance",
+    fields: [
+      "busId",
+      "serviceDate",
+      "maintenanceType",
+      "workDescription",
+      "cost",
+      "odometer",
+      "nextServiceDate",
+      "isArchived",
+    ],
+  },
+  "maintenance.updated": {
+    entity: "maintenance",
+    fields: [
+      "serviceDate",
+      "maintenanceType",
+      "workDescription",
+      "cost",
+      "odometer",
+      "nextServiceDate",
+    ],
+  },
+  "maintenance.archived": { entity: "maintenance", fields: ["isArchived"] },
 });
 export const ENTITY_TYPES = Object.freeze([
   "account",
@@ -118,4 +143,5 @@ export const ENTITY_TYPES = Object.freeze([
   "driver",
   "schedule",
   "application",
+  "maintenance",
 ]);

@@ -129,6 +129,7 @@ export function errorMessage(error) {
 }
 
 let csrfToken = null;
+let csrfTokenPromise = null;
 
 export function setCsrfToken(token) {
   csrfToken = token || null;
@@ -147,9 +148,22 @@ export function setSessionExpiredHandler(handler) {
 }
 
 async function fetchCsrfToken() {
-  const response = await rawRequest("/auth/csrf");
-  csrfToken = response.data.csrfToken;
-  return csrfToken;
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = rawRequest("/auth/csrf")
+      .then((response) => {
+        csrfToken = response.data.csrfToken;
+        return csrfToken;
+      })
+      .finally(() => {
+        csrfTokenPromise = null;
+      });
+  }
+
+  return csrfTokenPromise;
 }
 
 async function rawRequest(endpoint, { method = "GET", body, token } = {}) {

@@ -17,6 +17,7 @@ import LandingPage from "./pages/LandingPage.jsx";
 import BusesPage from "./pages/BusesPage.jsx";
 import RoutesPage from "./pages/RoutesPage.jsx";
 import SchedulesPage from "./pages/SchedulesPage.jsx";
+import MaintenancePage from "./pages/MaintenancePage.jsx";
 import { navigate, usePath } from "./utils/navigation.js";
 import { CAPABILITIES, can } from "./utils/permissions.js";
 import "./App.css";
@@ -35,6 +36,11 @@ const SCHEDULES_NAV = {
   icon: "calendar",
 };
 const TRIPS_NAV = { key: "schedules", label: "My trips", icon: "calendar" };
+const MAINTENANCE_NAV = {
+  key: "maintenance",
+  label: "Maintenance",
+  icon: "wrench",
+};
 const ADMIN_NAV = [
   { key: "accounts", label: "Accounts", icon: "users" },
   { key: "audit", label: "Audit log", icon: "clock" },
@@ -52,6 +58,7 @@ function Authenticated({ user, onLogout }) {
   const canViewDrivers = can(user, CAPABILITIES.VIEW_DRIVERS);
   const canViewSchedules = can(user, CAPABILITIES.VIEW_SCHEDULES);
   const canViewOwnTrips = can(user, CAPABILITIES.VIEW_OWN_TRIPS);
+  const canViewMaintenance = can(user, CAPABILITIES.VIEW_MAINTENANCE);
 
   const navItems = [
     ...(!can(user, CAPABILITIES.APPLY_RECRUITMENT) ? [HOME_NAV] : []),
@@ -67,6 +74,7 @@ function Authenticated({ user, onLogout }) {
       : canViewOwnTrips
         ? [TRIPS_NAV]
         : []),
+    ...(canViewMaintenance ? [MAINTENANCE_NAV] : []),
     ...(isAdmin ? ADMIN_NAV : []),
   ];
   // A user can never land on a page they have no nav item for, even if state were changed.
@@ -98,6 +106,8 @@ function Authenticated({ user, onLogout }) {
         <DriversPage user={user} />
       ) : current === "schedules" ? (
         <SchedulesPage user={user} />
+      ) : current === "maintenance" ? (
+        <MaintenancePage user={user} />
       ) : current === "accounts" && isAdmin ? (
         <AccountsPage currentUser={user} />
       ) : current === "audit" && isAdmin ? (
