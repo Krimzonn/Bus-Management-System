@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import RecruitmentPage from "./features/recruitment/RecruitmentPage.jsx";
+import RegisterPage from "./features/recruitment/RegisterPage.jsx";
 import DriversPage from "./pages/DriverPage.jsx";
 import {
   errorMessage,
@@ -27,7 +29,11 @@ const HOME_NAV = { key: "home", label: "Home", icon: "home" };
 const BUSES_NAV = { key: "buses", label: "Buses", icon: "bus" };
 const ROUTES_NAV = { key: "routes", label: "Routes", icon: "route" };
 const DRIVERS_NAV = { key: "drivers", label: "Drivers", icon: "users" };
-const SCHEDULES_NAV = { key: "schedules", label: "Schedules", icon: "calendar" };
+const SCHEDULES_NAV = {
+  key: "schedules",
+  label: "Schedules",
+  icon: "calendar",
+};
 const TRIPS_NAV = { key: "schedules", label: "My trips", icon: "calendar" };
 const ADMIN_NAV = [
   { key: "accounts", label: "Accounts", icon: "users" },
@@ -35,7 +41,9 @@ const ADMIN_NAV = [
 ];
 
 function Authenticated({ user, onLogout }) {
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(
+    can(user, CAPABILITIES.APPLY_RECRUITMENT) ? "recruitment" : "home",
+  );
   const [loggingOut, setLoggingOut] = useState(false);
   const isAdmin = user.role === "admin";
   // UI hints only; the backend checks each capability on every request.
@@ -46,15 +54,25 @@ function Authenticated({ user, onLogout }) {
   const canViewOwnTrips = can(user, CAPABILITIES.VIEW_OWN_TRIPS);
 
   const navItems = [
-    HOME_NAV,
+    ...(!can(user, CAPABILITIES.APPLY_RECRUITMENT) ? [HOME_NAV] : []),
+    ...(can(user, CAPABILITIES.APPLY_RECRUITMENT) ||
+    can(user, CAPABILITIES.VIEW_RECRUITMENT)
+      ? [{ key: "recruitment", label: "Recruitment", icon: "users" }]
+      : []),
     ...(canViewBuses ? [BUSES_NAV] : []),
     ...(canViewRoutes ? [ROUTES_NAV] : []),
     ...(canViewDrivers ? [DRIVERS_NAV] : []),
-    ...(canViewSchedules ? [SCHEDULES_NAV] : canViewOwnTrips ? [TRIPS_NAV] : []),
+    ...(canViewSchedules
+      ? [SCHEDULES_NAV]
+      : canViewOwnTrips
+        ? [TRIPS_NAV]
+        : []),
     ...(isAdmin ? ADMIN_NAV : []),
   ];
   // A user can never land on a page they have no nav item for, even if state were changed.
-  const current = navItems.some((item) => item.key === page) ? page : "home";
+  const current = navItems.some((item) => item.key === page)
+    ? page
+    : (navItems[0]?.key ?? "home");
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -70,7 +88,9 @@ function Authenticated({ user, onLogout }) {
       onLogout={handleLogout}
       loggingOut={loggingOut}
     >
-      {current === "buses" ? (
+      {current === "recruitment" ? (
+        <RecruitmentPage user={user} />
+      ) : current === "buses" ? (
         <BusesPage user={user} />
       ) : current === "routes" ? (
         <RoutesPage user={user} />
@@ -94,6 +114,7 @@ function Authenticated({ user, onLogout }) {
 // Public URLs (see utils/navigation.js):
 //   "/"       landing page for visitors, dashboard for signed-in users
 //   "/login"  login page (visitors only)
+//   "/register" applicant registration (visitors only)
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -131,10 +152,11 @@ export default function App() {
 
   // Keep the URL consistent with who is signed in:
   //  - signed in: always "/" (the dashboard)
-  //  - signed out: "/login" or "/" only; any other path becomes "/"
+  //  - signed out: "/login", "/register", or "/"; other paths become "/"
   useEffect(() => {
     if (checking) return;
-    const allowed = !user && path === "/login" ? "/login" : "/";
+    const allowed =
+      !user && ["/login", "/register"].includes(path) ? path : "/";
     if (path !== allowed) navigate(allowed, { replace: true });
   }, [checking, user, path]);
 
@@ -179,10 +201,21 @@ export default function App() {
   }
 
   if (!user) {
+    if (path === "/register")
+      return (
+        <RegisterPage
+          onBack={() => navigate("/login")}
+          onLoggedIn={(loggedIn) => {
+            setNotice("");
+            setUser(loggedIn);
+          }}
+        />
+      );
     if (path === "/login") {
       return (
         <LoginPage
           notice={notice}
+          onRegister={() => navigate("/register")}
           onBack={() => navigate("/")}
           onLoggedIn={(loggedIn) => {
             setNotice("");

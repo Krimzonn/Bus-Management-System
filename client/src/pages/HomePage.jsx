@@ -57,6 +57,10 @@ function useLoad(load, enabled = true) {
 /* ---- Static presentation data (labels only; no operational data) ---- */
 
 const ACTION_LABELS = {
+  "recruitment.submitted": "Application submitted",
+  "recruitment.status_changed": "Application status changed",
+  "recruitment.interview_recorded": "Interview recorded",
+  "recruitment.driver_registered": "Driver registered",
   "account.created": "Account created",
   "account.email_updated": "Account email updated",
   "account.role_changed": "Account role changed",
@@ -107,7 +111,7 @@ const PLANNED_MODULES = {
 };
 
 const PLANNED_BY_ROLE = {
-  admin: ["buses", "routes", "drivers", "schedules", "recruitment", "reports"],
+  admin: ["buses", "routes", "drivers", "schedules", "reports"],
   transportation_manager: ["buses", "routes", "drivers", "schedules"],
   administrative_staff: ["maintenance", "fuel", "reports"],
   driver: ["trips"],
@@ -509,6 +513,14 @@ export default function HomePage({ user, onNavigate }) {
                   onOpen={() => onNavigate("audit")}
                 />
               </>
+            )}
+            {(isAdmin || user.role === "transportation_manager") && (
+              <ModuleTile
+                icon="users"
+                label="Recruitment"
+                text="Applications and decisions"
+                onOpen={() => onNavigate("recruitment")}
+              />
             )}
             {planned.map((module) => (
               <ModuleTile

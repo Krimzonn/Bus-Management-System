@@ -8,11 +8,21 @@
 // browser sends it automatically. The CSRF token is NOT a secret credential,
 // but we still keep it in memory only (never in localStorage).
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || "/api/v1";
 
 // Error codes are translated to readable English here. All UI text for errors
 // lives in this one map, so it is easy to translate later.
 const ERROR_MESSAGES = {
+  INVALID_RECRUITMENT_INPUT:
+    "Check the required application or interview fields.",
+  INVALID_APPLICATION_ID: "Invalid application identifier.",
+  APPLICATION_NOT_FOUND: "Application not found.",
+  DUPLICATE_APPLICATION: "You already submitted an application.",
+  INVALID_APPLICATION_TRANSITION:
+    "This workflow action is not allowed at the current stage.",
+  DRIVER_REGISTRATION_NOT_ELIGIBLE:
+    "Only selected applicants may register as drivers.",
+  DRIVER_ALREADY_REGISTERED: "You have already registered as a driver.",
   INVALID_CREDENTIALS: "Incorrect email or password.",
   INVALID_INPUT: "Please enter both email and password.",
   AUTHENTICATION_REQUIRED: "Your session has expired. Please sign in again.",
@@ -32,7 +42,8 @@ const ERROR_MESSAGES = {
   // Fleet (buses)
   INVALID_BUS_NUMBER:
     "Enter a valid bus number: up to 30 letters, digits, spaces, “/” or “-”.",
-  INVALID_SEATING_CAPACITY: "Seating capacity must be a whole number from 1 to 100.",
+  INVALID_SEATING_CAPACITY:
+    "Seating capacity must be a whole number from 1 to 100.",
   INVALID_LICENSE_CATEGORY:
     "Enter a valid license category: up to 20 letters, digits, spaces or “-”.",
   INVALID_BUS_STATUS: "Choose a valid bus status.",
@@ -46,7 +57,8 @@ const ERROR_MESSAGES = {
     "A bus with this number already exists. Bus numbers are unique and are never reused, even after archiving.",
   BUS_ARCHIVED: "This bus is archived and can no longer be changed.",
   BUS_ALREADY_ARCHIVED: "This bus is already archived.",
-  BUS_NUMBER_IMMUTABLE: "A bus number cannot be changed after the bus is created.",
+  BUS_NUMBER_IMMUTABLE:
+    "A bus number cannot be changed after the bus is created.",
   // Routes
   INVALID_ROUTE_CODE:
     "Enter a valid route code: up to 30 letters, digits, spaces, “/” or “-”.",
@@ -62,7 +74,8 @@ const ERROR_MESSAGES = {
     "A route with this code already exists. Route codes are unique and are never reused, even after archiving.",
   ROUTE_ARCHIVED: "This route is archived and can no longer be changed.",
   ROUTE_ALREADY_ARCHIVED: "This route is already archived.",
-  ROUTE_CODE_IMMUTABLE: "A route code cannot be changed after the route is created.",  // Drivers
+  ROUTE_CODE_IMMUTABLE:
+    "A route code cannot be changed after the route is created.", // Drivers
   INVALID_DRIVER_NAME: "Enter a driver name of up to 100 characters.",
   INVALID_LICENSE_NUMBER:
     "Enter a valid license number: up to 30 letters, digits, spaces, “/” or “-”.",
@@ -76,7 +89,8 @@ const ERROR_MESSAGES = {
     "A driver with this license number already exists. License numbers are unique, even for archived drivers.",
   DRIVER_ARCHIVED: "This driver is archived and can no longer be changed.",
   DRIVER_ALREADY_ARCHIVED: "This driver is already archived.",
-  NETWORK_ERROR: "Cannot reach the server. Check your connection and try again.",
+  NETWORK_ERROR:
+    "Cannot reach the server. Check your connection and try again.",
   UNKNOWN: "Something went wrong. Please try again.",
 };
 
@@ -92,7 +106,9 @@ export const ROLES = [
 ];
 
 export function roleLabel(roleKey) {
-  return ROLES.find((role) => role.key === roleKey)?.label || "No role assigned";
+  return (
+    ROLES.find((role) => role.key === roleKey)?.label || "No role assigned"
+  );
 }
 
 export class ApiError extends Error {
@@ -261,7 +277,8 @@ export const setAccountActive = (id, isActive) =>
 export const listAudit = (filters = {}) => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, value);
   }
   const query = params.toString();
   return apiRequest("/audit" + (query ? "?" + query : ""));
@@ -280,7 +297,8 @@ export const listAudit = (filters = {}) => {
 export const listBuses = (filters = {}) => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, value);
   }
   const query = params.toString();
   return apiRequest("/buses" + (query ? "?" + query : ""));
@@ -314,13 +332,15 @@ export const archiveBus = (id) =>
 function buildQuery(filters) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, value);
   }
   const query = params.toString();
   return query ? "?" + query : "";
 }
 
-export const listRoutes = (filters = {}) => apiRequest("/routes" + buildQuery(filters));
+export const listRoutes = (filters = {}) =>
+  apiRequest("/routes" + buildQuery(filters));
 
 // For the future Scheduling screens: only routes a new assignment may use.
 export const listSelectableRoutes = (filters = {}) =>
@@ -351,7 +371,8 @@ export const archiveRoute = (id) =>
 // PATCH  /drivers/:id/status      { status: "available" | "on_leave" | "absent" }
 // POST   /drivers/:id/archive
 
-export const listDrivers = (filters = {}) => apiRequest("/drivers" + buildQuery(filters));
+export const listDrivers = (filters = {}) =>
+  apiRequest("/drivers" + buildQuery(filters));
 
 export const listLicenseExpiry = (filters = {}) =>
   apiRequest("/drivers/license-expiry" + buildQuery(filters));
@@ -369,3 +390,27 @@ export const setDriverStatus = (id, status) =>
 
 export const archiveDriver = (id) =>
   apiRequest(`/drivers/${id}/archive`, { method: "POST" });
+// Slice 9 — Recruitment. All paths use the existing session/CSRF boundary.
+export const registerApplicant = (input) =>
+  apiRequest("/auth/register-applicant", { method: "POST", body: input });
+export const listRecruitment = (own, filters = {}) =>
+  apiRequest("/recruitment" + (own ? "/own" : buildQuery(filters)));
+export const getRecruitment = (own, id) =>
+  apiRequest(`/recruitment${own ? "/own" : ""}/${encodeURIComponent(id)}`);
+export const submitRecruitment = (input) =>
+  apiRequest("/recruitment/own", { method: "POST", body: input });
+export const changeRecruitmentStatus = (id, input) =>
+  apiRequest(`/recruitment/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: input,
+  });
+export const saveRecruitmentInterview = (id, input) =>
+  apiRequest(`/recruitment/${encodeURIComponent(id)}/interview`, {
+    method: "PUT",
+    body: input,
+  });
+export const registerRecruitmentDriver = (id, input) =>
+  apiRequest(`/recruitment/own/${encodeURIComponent(id)}/driver`, {
+    method: "POST",
+    body: input,
+  });

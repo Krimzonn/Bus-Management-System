@@ -5,7 +5,7 @@ import { errorMessage, login } from "../services/api.js";
 
 // Same behaviour as before: login(), error text from api.js, session notice.
 // onBack (optional) shows a "Back to home" link that returns to the landing page.
-export default function LoginPage({ notice, onLoggedIn, onBack }) {
+export default function LoginPage({ notice, onLoggedIn, onBack, onRegister }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -96,6 +96,16 @@ export default function LoginPage({ notice, onLoggedIn, onBack }) {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
 
+        {onRegister && (
+          <button
+            type="button"
+            className="bm-btn"
+            onClick={onRegister}
+            disabled={submitting}
+          >
+            Register as an applicant
+          </button>
+        )}
         {onBack && (
           <button
             type="button"

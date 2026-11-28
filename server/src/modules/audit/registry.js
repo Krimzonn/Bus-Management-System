@@ -1,6 +1,22 @@
 // Supported audit events. This does not resolve the broader D-11 policy.
 export const ACTIONS = Object.freeze({
-  "account.created": { entity: "account", fields: ["email", "role", "isActive"] },
+  "recruitment.submitted": { entity: "application", fields: ["status"] },
+  "recruitment.status_changed": {
+    entity: "application",
+    fields: ["status", "decisionReason"],
+  },
+  "recruitment.interview_recorded": {
+    entity: "application",
+    fields: ["status", "interviewDate", "outcome", "notes"],
+  },
+  "recruitment.driver_registered": {
+    entity: "application",
+    fields: ["status", "driverId"],
+  },
+  "account.created": {
+    entity: "account",
+    fields: ["email", "role", "isActive"],
+  },
   "account.email_updated": { entity: "account", fields: ["email"] },
   "account.role_changed": { entity: "account", fields: ["role"] },
   "account.activated": { entity: "account", fields: ["isActive"] },
@@ -10,26 +26,53 @@ export const ACTIONS = Object.freeze({
   "bus.created": {
     entity: "bus",
     fields: [
-      "busNumber", "seatingCapacity", "requiredLicenseCategory", "status", "isArchived",
-      "defaultRouteId", "defaultDriverId",
+      "busNumber",
+      "seatingCapacity",
+      "requiredLicenseCategory",
+      "status",
+      "isArchived",
+      "defaultRouteId",
+      "defaultDriverId",
     ],
   },
   "bus.updated": {
     entity: "bus",
-    fields: ["seatingCapacity", "requiredLicenseCategory", "defaultRouteId", "defaultDriverId"],
+    fields: [
+      "seatingCapacity",
+      "requiredLicenseCategory",
+      "defaultRouteId",
+      "defaultDriverId",
+    ],
   },
   "bus.status_changed": { entity: "bus", fields: ["status"] },
   "bus.archived": { entity: "bus", fields: ["isArchived"] },
   "route.created": {
     entity: "route",
-    fields: ["routeCode", "name", "origin", "destination", "status", "isArchived"],
+    fields: [
+      "routeCode",
+      "name",
+      "origin",
+      "destination",
+      "status",
+      "isArchived",
+    ],
   },
-  "route.updated": { entity: "route", fields: ["name", "origin", "destination"] },
+  "route.updated": {
+    entity: "route",
+    fields: ["name", "origin", "destination"],
+  },
   "route.status_changed": { entity: "route", fields: ["status"] },
   "route.archived": { entity: "route", fields: ["isArchived"] },
   "driver.created": {
     entity: "driver",
-    fields: ["fullName", "licenseNumber", "licenseCategory", "licenseExpiryDate", "status", "isArchived"],
+    fields: [
+      "fullName",
+      "licenseNumber",
+      "licenseCategory",
+      "licenseExpiryDate",
+      "status",
+      "isArchived",
+    ],
   },
   "driver.updated": { entity: "driver", fields: ["fullName"] },
   "driver.license_updated": {
@@ -38,16 +81,41 @@ export const ACTIONS = Object.freeze({
   },
   "driver.status_changed": { entity: "driver", fields: ["status"] },
   "driver.archived": { entity: "driver", fields: ["isArchived"] },
-  "driver.account_link_changed": { entity: "driver", fields: ["accountUserId"] },
+  "driver.account_link_changed": {
+    entity: "driver",
+    fields: ["accountUserId"],
+  },
   "schedule.created": {
     entity: "schedule",
-    fields: ["travelDate", "departureTime", "arrivalTime", "busId", "driverId", "routeId", "status"],
+    fields: [
+      "travelDate",
+      "departureTime",
+      "arrivalTime",
+      "busId",
+      "driverId",
+      "routeId",
+      "status",
+    ],
   },
-  "schedule.updated": { entity: "schedule", fields: ["travelDate", "departureTime", "arrivalTime"] },
-  "schedule.assignment_changed": { entity: "schedule", fields: ["busId", "driverId", "routeId"] },
+  "schedule.updated": {
+    entity: "schedule",
+    fields: ["travelDate", "departureTime", "arrivalTime"],
+  },
+  "schedule.assignment_changed": {
+    entity: "schedule",
+    fields: ["busId", "driverId", "routeId"],
+  },
   "schedule.driver_replaced": { entity: "schedule", fields: ["driverId"] },
   "schedule.started": { entity: "schedule", fields: ["status"] },
   "schedule.completed": { entity: "schedule", fields: ["status"] },
   "schedule.cancelled": { entity: "schedule", fields: ["status"] },
 });
-export const ENTITY_TYPES = Object.freeze(["account", "auth", "bus", "route", "driver", "schedule"]);
+export const ENTITY_TYPES = Object.freeze([
+  "account",
+  "auth",
+  "bus",
+  "route",
+  "driver",
+  "schedule",
+  "application",
+]);
